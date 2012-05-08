@@ -1,0 +1,9 @@
+> 1 24 4
+GUCGGUGCGGUCGCGCGCGUCGACC
+((((..(((......)))..)))):
+> 3 26 4
+UCGGUGCGGUCGCGCGCGUCGACCGC
+:(((((((......)))....)))):
+> 3 29 4
+UCGGUGCGGUCGCGCGCGUCGACCGCCGU
+:(((((((......))).......)))):

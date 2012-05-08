@@ -1,0 +1,9 @@
+# test filter
+
+sm1:50          h1
+
+sm2:5%3        h1
+
+SmHairpin:120pn    s16    h1
+
+roi s16

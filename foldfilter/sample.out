@@ -1,0 +1,14 @@
+Starting rnarobo: version dev1.92, August 2011
+---------------------------------------------------
+Database file:                 sample.fa
+Descriptor file:               sample.des
+Search order:                  H1 S1 
+Complementary strand searched: yes
+---------------------------------------------------
+
+ seq-f  seq-t     name     description
+------ ------ ------------ ------------
+     3     11         seq1             
+|GCG|ACTGA|CGC|
+    11      3         seq2             
+|GCG|CGCAGGGAUACCCGCG|CGC|

@@ -1,0 +1,6 @@
+> 4 21 3 0.0
+CGGUGCGGUCGCGCGCGUCG
+:(((::::::::::::))):
+> 5 18 3 0.0
+GGUGCGGUCGCGCGCG
+:(((::::::::))):
