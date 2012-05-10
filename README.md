@@ -1,7 +1,7 @@
 RNArobo
 =======
 
-An RNA structural motif searching tool. RNArobo can search sequence databases in FASTA format for a motif defined by a ‘descriptor’, which can specify primary and secondary structure constraints.
+An RNA structural motif searching tool. RNArobo can search sequence databases in FASTA format for a motif defined by a "descriptor", which can specify primary and secondary structure constraints.
 
 Compile RNArobo:
 tar -zxf rnarobo-1.94.tar.gz
