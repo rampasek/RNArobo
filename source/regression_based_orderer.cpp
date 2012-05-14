@@ -72,7 +72,7 @@ void RegressionBasedOrderer::prepareKTuples(){
     }
 
     //generate (by brute-force) and score all K-tuples
-    vector< pair<int, vector<int> > > allTuples;
+    vector< pair<int, pair<vector<int>, pair<vector<double>, vector<int> > > > > allTuples;
     allTuples.reserve( pow(elementsToOrder.size(), K) );
     vector< vector<int>::iterator > iters(K, elementsToOrder.begin());
 
@@ -98,9 +98,10 @@ void RegressionBasedOrderer::prepareKTuples(){
             } //cout<<endl;
 
             //score the tuple and save it
-            int tscore = getTupleScore(tuple);
+            pair<int, pair<vector<double>, vector<int> > > fullTupleScoreResult = getTupleScore(tuple);
+            int tscore = fullTupleScoreResult.first;
             min_tscore = min(min_tscore, tscore);
-            allTuples.push_back( make_pair(tscore, tuple) );
+            allTuples.push_back( make_pair(tscore, make_pair(tuple, fullTupleScoreResult.second) ) );
         }
         
         //move iterators to the next configuration
@@ -136,8 +137,10 @@ void RegressionBasedOrderer::prepareKTuples(){
     tmpStats.memOps.resize(K);
     tmpStats.basesScanned = 0;
     for(int i = allTuples.size()-1; i>-1 && allTuples[i].first >= scoreLimit && tupleStats.size() < trainSetLimit; i--){
-        tmpStats.tuple = allTuples[i].second;
+        tmpStats.tuple = allTuples[i].second.first;
         tmpStats.heuristicScore = allTuples[i].first;
+        tmpStats.ICscores = allTuples[i].second.second.first;
+        tmpStats.DFscores = allTuples[i].second.second.second;
         
         //store to object variables
         activeTuples.insert( tupleStats.size() );
@@ -159,7 +162,7 @@ void RegressionBasedOrderer::prepareKTuples(){
 ///calculate heuristic score for given tuple of elements
 ///since part of the score is order dependant, fixedOrder is considered
 ///to be the beginning of the corresponding partial search order
-int RegressionBasedOrderer::getTupleScore(vector<int> &tuple){
+pair<int, pair<vector<double>, vector<int> > > RegressionBasedOrderer::getTupleScore(vector<int> &tuple){
     //cout<<"size: "<<tuple.size()<<" "<<fixedOrder.size()<<endl;
     //TODO: kombinacia HF do skore
     double tupleScore = 0;
@@ -168,6 +171,9 @@ int RegressionBasedOrderer::getTupleScore(vector<int> &tuple){
     for(int i=0; i<fixedOrder.size(); ++i){
         alreadyFixed[fixedOrder[i]] = true;
     }
+    
+    vector<double> ICvalues;
+    vector<int> DFvalues;
     
     for(int i=0; i<tuple.size(); i++){
         //get the information content of the sse
@@ -182,8 +188,6 @@ int RegressionBasedOrderer::getTupleScore(vector<int> &tuple){
         
         alreadyFixed[tuple[i]] = true;
         
-        samples.push_back(make_pair(make_pair(ic, domainFlexibility),-1));
-        
         //calculate heuristic score for this sse and add it to the tuple's score
         double elementScore = ic;
         elementScore -= 0.3*domainFlexibility;
@@ -191,10 +195,16 @@ int RegressionBasedOrderer::getTupleScore(vector<int> &tuple){
         //scale weight of the elemenet by exp function of the position in the tuple
         tupleScore += pow(2., tuple.size()-i-1) * elementScore;
         
+        //store the individual subscores
+        ICvalues.push_back(ic);
+        DFvalues.push_back(domainFlexibility);
+        
        //cout<<tuple[i]<<">  ic= "<<ic<<"\n    apxDF= "<<domainFlexibility<<endl;
     }
+    
     //cout<<"TS: "<<tupleScore<<endl;
-    return round(tupleScore);
+    //return the final score + vectors of subscores for individual elements of the given k-tuple
+    return make_pair(round(tupleScore), make_pair(ICvalues, DFvalues) );
 }
 
 ///calculate approximate flexibility of the sse's search domain size
@@ -341,12 +351,13 @@ bool RegressionBasedOrderer::storeKTupleStats(int tupleID){
     
     //don't add if the search didn't make it so far in the search order (the tuple wasn't searched)
     if(allOps <= 0){
-        samples.pop_back();
         return false;
     }
     
     tupleStats[tupleID].sampledOpsPerWindow.push_back(allOps/double(currentSeqSize));
-    samples[samples.size()-1].second = allOps/double(currentSeqSize);
+    
+    //store to history
+    samples.push_back( make_pair(tupleID, allOps/double(currentSeqSize)) );
     
     return true;
 }

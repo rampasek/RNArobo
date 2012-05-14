@@ -53,6 +53,8 @@ struct SSE{
 struct TupleStats{
     vector<int> tuple; // vector of elements that form this tuple, values are indices to Descriptor::sses
     double heuristicScore;
+    vector<double> ICscores;
+    vector<int> DFscores;
     
     vector<double> sampledOpsPerWindow;
     vector<unsigned long long> memOps;

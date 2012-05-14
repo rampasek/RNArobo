@@ -29,7 +29,7 @@ class RegressionBasedOrderer{
         vector<int> searchOrder;     // the ordered list of SSEs to be searched (indices to the vector "sses")
         bool doIterativeTraining;
         bool samplingSearchDone;
-        vector<pair<pair<double, double>, double> > samples;
+        vector< pair<int, double> > samples; //history of samples: pair< index to tupleStats identifies the used k-tuple, sampled memops >
         
         //stringstream fout;
         unsigned long long scannedWindows;
@@ -46,7 +46,7 @@ class RegressionBasedOrderer{
         double *criticalValues;
         
         void prepareKTuples();
-        int getTupleScore(vector<int> &tuple);
+        pair<int, pair<vector<double>, vector<int> > > getTupleScore(vector<int> &tuple);
         int calculateDomainFlexibility(vector<bool> &fixed, int element);
         bool storeKTupleStats(int tupleID);
         void eliminateAgainstKTuple(int tupleID);

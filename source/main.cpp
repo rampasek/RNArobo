@@ -510,9 +510,40 @@ int main(int argc, char* argv[]){
     cout<<"MemOps/second: "<<(ops+ops2)/elapsed<<endl;
 */
     
+    printf("\n----- TUPLES: -----\n");
+    printf(" ID   elements     ICscores     DFscores      OverallScore\n"); 
+    for(int i=0; i<ssearch.orderer->tupleStats.size(); i++){
+        printf("%3d   ", i);
+        struct TupleStats stats = ssearch.orderer->tupleStats[i];
+        for(int j=0; j<stats.tuple.size(); ++j){
+            cout<<stats.tuple[j]<<"$";
+            string name;
+            for(map<string, int>::iterator it=ssearch.desc->transl.begin(); it!=ssearch.desc->transl.end(); ++it){
+                if(it->second == stats.tuple[j]){
+                    name = it->first;
+                    break;
+                }
+            }
+            cout<<name<<" ";
+        } cout<<" | ";
+        
+        for(int j=0; j<stats.ICscores.size(); ++j){
+            cout<<stats.ICscores[j]<<" ";
+        } cout<<" | ";
+        
+        for(int j=0; j<stats.DFscores.size(); ++j){
+            cout<<stats.DFscores[j]<<" ";
+        } cout<<" | ";
+        
+        cout<<stats.heuristicScore<<endl;
+    } cout<<endl;
+
+    printf(" ID   sampledMemOPs\n");
     for (int i=0; i<orderer.samples.size(); i++) {
-        pair<pair<double, double>, double> p = orderer.samples[i];
-        cout << p.first.first << " " << p.first.second << " " << p.second << endl;
+        int tupleID = orderer.samples[i].first;
+        double sampledMemOPs = orderer.samples[i].second;
+        
+        printf("%3d %13.2f\n", tupleID, sampledMemOPs);
     }
     return 0;
 }
