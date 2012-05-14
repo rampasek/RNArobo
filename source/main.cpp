@@ -238,7 +238,7 @@ int main(int argc, char* argv[]){
         }
     }
 
-    Orderer orderer(desc, param_k, param_limit, param_alpha, param_iterative);
+    RegressionBasedOrderer orderer(desc, param_k, param_limit, param_alpha, param_iterative);
     Simple_Search ssearch(desc, orderer);
     string line;
     long long total_bases_scanned = 0;
@@ -509,5 +509,10 @@ int main(int argc, char* argv[]){
     cout<<"\nAllTOGETHER: "<<ops+ops2<<endl;
     cout<<"MemOps/second: "<<(ops+ops2)/elapsed<<endl;
 */
+    
+    for (int i=0; i<orderer.samples.size(); i++) {
+        pair<pair<double, double>, double> p = orderer.samples[i];
+        cout << p.first.first << " " << p.first.second << " " << p.second << endl;
+    }
     return 0;
 }

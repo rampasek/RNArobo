@@ -36,7 +36,7 @@ using namespace GF;
 #define BEGIN first
 #define END second
 
-Simple_Search::Simple_Search(Descriptor &dsc, Orderer &ord){
+Simple_Search::Simple_Search(Descriptor &dsc, RegressionBasedOrderer &ord){
     desc = &dsc;
     orderer = &ord;
 }

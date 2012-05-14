@@ -20,6 +20,7 @@
 #include "generalfuncs.h"
 #include "descriptor.h"
 #include "orderer.h"
+#include "regression_based_orderer.h"
 
 using namespace std;
 
@@ -27,10 +28,10 @@ class Simple_Search{
     public:
         bool have_solution;
         Descriptor *desc;
-        Orderer *orderer;           // pointer to an instance of Orderer class - manages the element search ordering
+        RegressionBasedOrderer *orderer;           // pointer to an instance of Orderer class - manages the element search ordering
         vector<intervals> solutions;
 
-        Simple_Search(Descriptor &dsc, Orderer &ord);
+        Simple_Search(Descriptor &dsc, RegressionBasedOrderer &ord);
         void search(string &seq);
         void find_motif(int ind, string &seq, intervals &grid);
         list<interval_pair> get_domain(intervals &grid, string &seq, SSE &se);
