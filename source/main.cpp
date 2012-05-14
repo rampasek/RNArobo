@@ -321,7 +321,7 @@ int main(int argc, char* argv[]){
                     } else {
                         found_matches.insert(match_pos);
 
-                        print_formated_output(opt_fasta,
+                        /*print_formated_output(opt_fasta,
                                             match_begin,
                                             match_end,
                                             sq_name,
@@ -330,7 +330,7 @@ int main(int argc, char* argv[]){
                                         );
                         if (opt_dotbracked == true) {
                             printf("%s\n", ssearch.solution_to_dotbracket(i, element_separator).c_str());
-                        }
+                        }*/
                         
                     }
                 }
@@ -351,7 +351,7 @@ int main(int argc, char* argv[]){
                         } else {
                             found_op_matches.insert(match_pos);
                         
-                            print_formated_output(opt_fasta,
+                            /*print_formated_output(opt_fasta,
                                             match_begin,
                                             match_end,
                                             sq_name,
@@ -360,7 +360,7 @@ int main(int argc, char* argv[]){
                                         );
                             if (opt_dotbracked == true) {
                                 printf("%s\n", ssearch.solution_to_dotbracket(i, element_separator).c_str());
-                            }
+                            }*/
                         
                         }
                     }
@@ -510,40 +510,43 @@ int main(int argc, char* argv[]){
     cout<<"MemOps/second: "<<(ops+ops2)/elapsed<<endl;
 */
     
-    printf("\n----- TUPLES: -----\n");
-    printf(" ID   elements     ICscores     DFscores      OverallScore\n"); 
-    for(int i=0; i<ssearch.orderer->tupleStats.size(); i++){
-        printf("%3d   ", i);
-        struct TupleStats stats = ssearch.orderer->tupleStats[i];
-        for(int j=0; j<stats.tuple.size(); ++j){
-            cout<<stats.tuple[j]<<"$";
-            string name;
-            for(map<string, int>::iterator it=ssearch.desc->transl.begin(); it!=ssearch.desc->transl.end(); ++it){
-                if(it->second == stats.tuple[j]){
-                    name = it->first;
-                    break;
+    if(orderer.samplesHistory.size() > 0){
+        printf("\n----- TUPLES: -----\n");
+        printf(" ID   elements     ICscores     DFscores      OverallScore\n"); 
+        for(int i=0; i<ssearch.orderer->tupleStats.size(); i++){
+            printf("%3d   ", i);
+            struct TupleStats stats = ssearch.orderer->tupleStats[i];
+            for(int j=0; j<stats.tuple.size(); ++j){
+                cout<<stats.tuple[j]<<"$";
+                string name;
+                for(map<string, int>::iterator it=ssearch.desc->transl.begin(); it!=ssearch.desc->transl.end(); ++it){
+                    if(it->second == stats.tuple[j]){
+                        name = it->first;
+                        break;
+                    }
                 }
-            }
-            cout<<name<<" ";
-        } cout<<" | ";
-        
-        for(int j=0; j<stats.ICscores.size(); ++j){
-            cout<<stats.ICscores[j]<<" ";
-        } cout<<" | ";
-        
-        for(int j=0; j<stats.DFscores.size(); ++j){
-            cout<<stats.DFscores[j]<<" ";
-        } cout<<" | ";
-        
-        cout<<stats.heuristicScore<<endl;
-    } cout<<endl;
+                cout<<name<<" ";
+            } cout<<" | ";
+            
+            for(int j=0; j<stats.ICscores.size(); ++j){
+                cout<<stats.ICscores[j]<<" ";
+            } cout<<" | ";
+            
+            for(int j=0; j<stats.DFscores.size(); ++j){
+                cout<<stats.DFscores[j]<<" ";
+            } cout<<" | ";
+            
+            cout<<stats.heuristicScore<<endl;
+        } cout<<endl;
 
-    printf(" ID   sampledMemOPs\n");
-    for (int i=0; i<orderer.samples.size(); i++) {
-        int tupleID = orderer.samples[i].first;
-        double sampledMemOPs = orderer.samples[i].second;
-        
-        printf("%3d %13.2f\n", tupleID, sampledMemOPs);
+        printf(" ID   sampledMemOPs\n");
+        for (int i=0; i<orderer.samplesHistory.size(); i++) {
+            int tupleID = orderer.samplesHistory[i].first;
+            double sampledMemOPs = orderer.samplesHistory[i].second;
+            
+            printf("%3d %13.2f\n", tupleID, sampledMemOPs);
+        }
     }
+    
     return 0;
 }

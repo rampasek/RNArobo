@@ -29,7 +29,7 @@ class RegressionBasedOrderer{
         vector<int> searchOrder;     // the ordered list of SSEs to be searched (indices to the vector "sses")
         bool doIterativeTraining;
         bool samplingSearchDone;
-        vector< pair<int, double> > samples; //history of samples: pair< index to tupleStats identifies the used k-tuple, sampled memops >
+        vector< pair<int, double> > samplesHistory; //history of samples: pair< index to tupleStats identifies the used k-tuple, sampled memops >
         
         //stringstream fout;
         unsigned long long scannedWindows;

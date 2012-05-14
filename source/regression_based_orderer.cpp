@@ -17,6 +17,7 @@
 #include <ctime>
 
 #include <iostream>
+#include <cstdio>
 #include <iomanip>
 #include "regression_based_orderer.h"
 #include "welchtest.h"
@@ -278,6 +279,44 @@ void RegressionBasedOrderer::setNewSearchOrder(int seqSize){
         fout<<"WINNER: "<<*activeTuples.begin()<<endl;
         fout<<"COUNT: "<<scannedWindows<<"\nAVG.WIN: "<<scannedBases/(double)scannedWindows<<endl;
         */
+        printf("\n----- TUPLES: -----\n");
+        printf(" ID   elements     ICscores     DFscores      OverallScore\n"); 
+        for(int i=0; i<tupleStats.size(); i++){
+            printf("%3d   ", i);
+            struct TupleStats stats = tupleStats[i];
+            for(int j=0; j<stats.tuple.size(); ++j){
+                cout<<stats.tuple[j]<<"$";
+                string name;
+                for(map<string, int>::iterator it=desc->transl.begin(); it!=desc->transl.end(); ++it){
+                    if(it->second == stats.tuple[j]){
+                        name = it->first;
+                        break;
+                    }
+                }
+                cout<<name<<" ";
+            } cout<<" | ";
+            
+            for(int j=0; j<stats.ICscores.size(); ++j){
+                cout<<stats.ICscores[j]<<" ";
+            } cout<<" | ";
+            
+            for(int j=0; j<stats.DFscores.size(); ++j){
+                cout<<stats.DFscores[j]<<" ";
+            } cout<<" | ";
+            
+            cout<<stats.heuristicScore<<endl;
+        } cout<<endl;
+        
+        printf(" ID   sampledMemOPs\n");
+        for (int i=0; i<samplesHistory.size(); i++) {
+            int tupleID = samplesHistory[i].first;
+            double sampledMemOPs = samplesHistory[i].second;
+            
+            printf("%3d %13.2f\n", tupleID, sampledMemOPs);
+        }
+        
+        //clear the history
+        samplesHistory.clear();
         ///FOUT end
         
         //add the victorious k-tuple to fixedOrder
@@ -357,7 +396,7 @@ bool RegressionBasedOrderer::storeKTupleStats(int tupleID){
     tupleStats[tupleID].sampledOpsPerWindow.push_back(allOps/double(currentSeqSize));
     
     //store to history
-    samples.push_back( make_pair(tupleID, allOps/double(currentSeqSize)) );
+    samplesHistory.push_back( make_pair(tupleID, allOps/double(currentSeqSize)) );
     
     return true;
 }
