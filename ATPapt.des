@@ -1,0 +1,11 @@
+h1 r2 s1 r3 h4 s2 h4' r3' s3 r2' h1'
+
+h1 0:0 *****:*****
+r2 0:0 NNNN:NNNN TGCA
+r3 0:0 CNNN:NNNG TGCA
+h4 0:0 *****:*****
+
+s1 0 GGAAGAAACTG
+s2 0 NNN[17]
+s3 0 G
+
