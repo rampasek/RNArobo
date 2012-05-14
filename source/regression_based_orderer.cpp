@@ -278,7 +278,7 @@ void RegressionBasedOrderer::setNewSearchOrder(int seqSize){
         
         fout<<"WINNER: "<<*activeTuples.begin()<<endl;
         fout<<"COUNT: "<<scannedWindows<<"\nAVG.WIN: "<<scannedBases/(double)scannedWindows<<endl;
-        */
+        *//*
         printf("\n----- TUPLES: -----\n");
         printf(" ID   elements     ICscores     DFscores      OverallScore\n"); 
         for(int i=0; i<tupleStats.size(); i++){
@@ -305,14 +305,26 @@ void RegressionBasedOrderer::setNewSearchOrder(int seqSize){
             } cout<<" | ";
             
             cout<<stats.heuristicScore<<endl;
-        } cout<<endl;
+        } cout<<endl;*/
         
-        printf(" ID   sampledMemOPs\n");
+        printf("ID IC DF memops\n");
         for (int i=0; i<samplesHistory.size(); i++) {
             int tupleID = samplesHistory[i].first;
             double sampledMemOPs = samplesHistory[i].second;
             
-            printf("%3d %13.2f\n", tupleID, sampledMemOPs);
+            //printf("%3d %13.2f\n", tupleID, sampledMemOPs);
+            struct TupleStats stats = tupleStats[tupleID];
+            double ICtotal = 0;
+            double DFtotal = 0;
+            
+            for(int j=0; j<stats.ICscores.size(); ++j){
+                ICtotal += pow(2., K-j-1) * stats.ICscores[j];
+            }
+            for(int j=0; j<stats.DFscores.size(); ++j){
+                DFtotal += pow(2., K-j-1) * stats.DFscores[j];
+            }
+            
+            cout << tupleID << " " << ICtotal << " " << DFtotal << " " << sampledMemOPs << endl;
         }
         
         //clear the history

@@ -37,6 +37,7 @@ Usage: rnarobo [OPTIONS] <descriptor-file> <sequence-file>\n\
      -c      search both strands of database\n\
      -f      print output in plain FASTA format\n\
      -s      print output in FASTA format with element separators\n\
+     -q      print almost nothing\n\
      \n\
   To override default search order training parameters:\n\
   (defaults: --k 3 --limit 40 --alpha 0.025 --iterative TRUE )\n\
@@ -56,7 +57,7 @@ inline void print_formated_output(bool fasta, unsigned int begin, unsigned int e
     }
 }
 
-int main(int argc, char* argv[]){
+int main(int argc, char* argv[]){    
     clock_t tStart = clock(); //to measure runtime
     
     string file_db;       // name of sequence file to search
@@ -92,11 +93,12 @@ int main(int argc, char* argv[]){
         {"complement", 0, 0, 'c'}, //long alias for -c
         {"fasta", 0, 0, 'f'}, //long alias for -f
         {"sep", 0, 0, 's'}, //long alias for -s
+        {"quiet", 0, 0, 'q'}, //long alias for -q
         {NULL, 0, NULL, 0}
     };
     extern int optind;
     int c, option_index = 0;
-    while ((c = getopt_long(argc, argv, "cfs", long_options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "cfsq", long_options, &option_index)) != -1) {
         string par;
         
         switch(c) {
@@ -157,6 +159,9 @@ int main(int argc, char* argv[]){
             opt_fasta = true;
             opt_be_quiet = true;
             element_separator = "";
+            break;
+        case 'q':
+            opt_be_quiet = true;
             break;
         case 's':
             opt_fasta = true;
@@ -400,36 +405,35 @@ int main(int argc, char* argv[]){
         total_matches += found_op_matches.size();
 
     }
-    
     //print final messages
-    if(opt_tonly && !ssearch.orderer->samplingSearchDone){
-        printf("\nWARNING! The database was not long enough to complete the training.\n\n");
-    } else {
-        printf("\n----- %s DONE -----\n", (opt_tonly?"TRAINING":"SEARCH"));
-    }
-    printf("Total bases scanned: %lld\n", total_bases_scanned);
-    if(!opt_tonly){
-        printf("Found matches:       %lld\n", total_matches);
-    }
-    double elapsed = (double)(clock() - tStart)/CLOCKS_PER_SEC;
-    printf("Time since start:    %02.0fh %02.0fm %02.0fs (%.2fs)\n",
-           floor(elapsed/3600.0),
-           floor(fmod(elapsed,3600.0)/60.0),
-           fmod(elapsed,60.0),
-           elapsed
-          );
-    printf("Final search order%s %s\n",
-           (opsPerBase==-1 ? "*:" : ": "),
-           ssearch.desc->search_order_to_str(ssearch.orderer->searchOrder).c_str()
-          );
-    printf("Est. difficulty:     ");
-        if(opsPerBase == -1){
-            printf("-\n");
-        } else {
-            printf("%.3f ops/base\n", opsPerBase);
-        }
-    
-    
+		if (!opt_be_quiet) {
+			if(opt_tonly && !ssearch.orderer->samplingSearchDone){
+				printf("\nWARNING! The database was not long enough to complete the training.\n\n");
+			} else {
+				printf("\n----- %s DONE -----\n", (opt_tonly?"TRAINING":"SEARCH"));
+			}
+			printf("Total bases scanned: %lld\n", total_bases_scanned);
+			if(!opt_tonly){
+				printf("Found matches:       %lld\n", total_matches);
+			}
+			double elapsed = (double)(clock() - tStart)/CLOCKS_PER_SEC;
+			printf("Time since start:    %02.0fh %02.0fm %02.0fs (%.2fs)\n",
+					floor(elapsed/3600.0),
+					floor(fmod(elapsed,3600.0)/60.0),
+					fmod(elapsed,60.0),
+					elapsed
+					);
+			printf("Final search order%s %s\n",
+					(opsPerBase==-1 ? "*:" : ": "),
+					ssearch.desc->search_order_to_str(ssearch.orderer->searchOrder).c_str()
+					);
+			printf("Est. difficulty:     ");
+			if(opsPerBase == -1){
+				printf("-\n");
+			} else {
+				printf("%.3f ops/base\n", opsPerBase);
+			}
+		}
     /*cout<<"\n";
     cout<<ssearch.orderer->fout.str()<<endl;
     if(ssearch.orderer->activeTuples.size() > 1) {
@@ -539,12 +543,24 @@ int main(int argc, char* argv[]){
             cout<<stats.heuristicScore<<endl;
         } cout<<endl;
 
-        printf(" ID   sampledMemOPs\n");
+        printf(" ID ICtotal DFtotal sampledMemOPs\n");
         for (int i=0; i<orderer.samplesHistory.size(); i++) {
             int tupleID = orderer.samplesHistory[i].first;
             double sampledMemOPs = orderer.samplesHistory[i].second;
             
-            printf("%3d %13.2f\n", tupleID, sampledMemOPs);
+            //printf("%3d %13.2f\n", tupleID, sampledMemOPs);
+            struct TupleStats stats = ssearch.orderer->tupleStats[tupleID];
+            double ICtotal = 0;
+            double DFtotal = 0;
+            
+            for(int j=0; j<stats.ICscores.size(); ++j){
+                ICtotal += pow(2., param_k-j-1) * stats.ICscores[j];
+            }
+            for(int j=0; j<stats.DFscores.size(); ++j){
+                DFtotal += pow(2., param_k-j-1) * stats.DFscores[j];
+            }
+            
+            cout << tupleID << " " << ICtotal << " " << DFtotal << " " << sampledMemOPs << endl;
         }
     }
     
