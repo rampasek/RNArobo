@@ -131,7 +131,7 @@ void RegressionBasedOrderer::prepareKTuples(){
     sort(allTuples.begin(), allTuples.end());
 
     int bestScore = allTuples.back().first;
-    int scoreLimit = (int)(bestScore*.85); //TODO: change to 0.8
+    int scoreLimit = (int)(bestScore*.25); //TODO: change to 0.8
     
     struct TupleStats tmpStats;
     tmpStats.heuristicScore = 0;
@@ -307,7 +307,7 @@ void RegressionBasedOrderer::setNewSearchOrder(int seqSize){
             cout<<stats.heuristicScore<<endl;
         } cout<<endl;*/
         
-        printf("ID IC DF memops\n");
+//        printf("ID IC DF memops\n");
         for (int i=0; i<samplesHistory.size(); i++) {
             int tupleID = samplesHistory[i].first;
             double sampledMemOPs = samplesHistory[i].second;
@@ -357,7 +357,7 @@ void RegressionBasedOrderer::setNewSearchOrder(int seqSize){
     
     //store gathered info for the current k-tuple and run an elimination round
     bool didGatherSample = storeKTupleStats(currentKTupleID);
-    if(didGatherSample){ eliminateAgainstKTuple(currentKTupleID); }
+    //if(didGatherSample){ eliminateAgainstKTuple(currentKTupleID); }
 
     //reset Ops counters for all elements
     for(int i=1; i<desc->sses.size(); i++){

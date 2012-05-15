@@ -515,6 +515,7 @@ int main(int argc, char* argv[]){
 */
     
     if(orderer.samplesHistory.size() > 0){
+/*
         printf("\n----- TUPLES: -----\n");
         printf(" ID   elements     ICscores     DFscores      OverallScore\n"); 
         for(int i=0; i<ssearch.orderer->tupleStats.size(); i++){
@@ -542,8 +543,8 @@ int main(int argc, char* argv[]){
             
             cout<<stats.heuristicScore<<endl;
         } cout<<endl;
-
-        printf(" ID ICtotal DFtotal sampledMemOPs\n");
+*/
+  //      printf(" ID ICtotal DFtotal sampledMemOPs\n");
         for (int i=0; i<orderer.samplesHistory.size(); i++) {
             int tupleID = orderer.samplesHistory[i].first;
             double sampledMemOPs = orderer.samplesHistory[i].second;
