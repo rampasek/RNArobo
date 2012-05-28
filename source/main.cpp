@@ -549,19 +549,17 @@ int main(int argc, char* argv[]){
             int tupleID = orderer.samplesHistory[i].first;
             double sampledMemOPs = orderer.samplesHistory[i].second;
             
-            //printf("%3d %13.2f\n", tupleID, sampledMemOPs);
             struct TupleStats stats = ssearch.orderer->tupleStats[tupleID];
-            double ICtotal = 0;
-            double DFtotal = 0;
-            
+            cout << tupleID;
+
             for(int j=0; j<stats.ICscores.size(); ++j){
-                ICtotal += pow(2., param_k-j-1) * stats.ICscores[j];
+                cout << " " << stats.ICscores[j];
             }
             for(int j=0; j<stats.DFscores.size(); ++j){
-                DFtotal += pow(2., param_k-j-1) * stats.DFscores[j];
+                cout << " " << stats.DFscores[j];
             }
             
-            cout << tupleID << " " << ICtotal << " " << DFtotal << " " << sampledMemOPs << endl;
+            cout << " " << sampledMemOPs << endl;
         }
     }
     
