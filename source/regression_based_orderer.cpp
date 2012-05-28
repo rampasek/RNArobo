@@ -213,7 +213,8 @@ pair<int, pair<vector<double>, vector<int> > > RegressionBasedOrderer::getTupleS
 int RegressionBasedOrderer::calculateDomainFlexibility(vector<bool> &fixed, int element){
     int approxDFleft = -1;
     int approxDFright = -1;
-    int tmpDFleft = 0;
+    int tmpDFleft = desc->get_max_motif_length();
+    bool rightFixedFound = false;
     int tmpDFright = 0;
     bool wasSeen = false;
     for(int j=0; j<desc->motif.size(); ++j){
@@ -222,6 +223,7 @@ int RegressionBasedOrderer::calculateDomainFlexibility(vector<bool> &fixed, int 
         if(fixed[sseID] || (desc->sses[abs(element)].is_helix && desc->motif[j] == -element)){ 
             if(wasSeen){ //if @element has been seen already => we are at the end of the right side of its domain 
                 approxDFright = tmpDFright;
+                rightFixedFound = true;
                 break;
             } else {
                 tmpDFleft = 0;
@@ -243,7 +245,7 @@ int RegressionBasedOrderer::calculateDomainFlexibility(vector<bool> &fixed, int 
     if(tmpDFright == -1){
         approxDFright = tmpDFright;
     }
-    
+    if (!rightFixedFound) approxDFright = desc->get_max_motif_length();
     return max(1, min(approxDFleft, approxDFright)+1);
 }
 
