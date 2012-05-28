@@ -29,6 +29,7 @@ class Orderer{
         int currentKTupleID;     // index of currently selected k-tuple in tupleStats
         vector<int> fixedOrder;     // the ordered list of SSEs that are already fixed, it's a prefix of srchOrder
         vector<int> searchOrder;     // the ordered list of SSEs to be searched (indices to the vector "sses")
+				pair<vector<double>, vector<double> > heuristicParams;
         bool doIterativeTraining;
         bool samplingSearchDone;
         
@@ -37,7 +38,7 @@ class Orderer{
         unsigned long long scannedBases;
         
         Orderer(){};
-        Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, unsigned int alphaID, bool doIT);
+        Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, unsigned int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams);
         void setNewSearchOrder(int seqSize);
         
     private:

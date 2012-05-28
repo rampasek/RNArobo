@@ -10,6 +10,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
@@ -34,9 +35,10 @@ static string txt_usage =
 Usage: rnarobo [OPTIONS] <descriptor-file> <sequence-file>\n\
 \n\
   Available options: \n\
-     -c      search both strands of database\n\
-     -f      print output in plain FASTA format\n\
-     -s      print output in FASTA format with element separators\n\
+     -c             search both strands of database\n\
+     -f             print output in plain FASTA format\n\
+     -s             print output in FASTA format with element separators\n\
+     --params FILE  override parameters for heuristic function with constants supplied in file\n\
      \n\
   To override default search order training parameters:\n\
   (defaults: --k 3 --limit 40 --alpha 0.025 --iterative TRUE )\n\
@@ -81,14 +83,25 @@ int main(int argc, char* argv[]){
     int opt_limit = -1;
     int opt_alpha = -1;
     int opt_iterative = -1;
+    string opt_paramsfile = "";
     const char *alphas[] = {"0.2", "0.1", "0.05", "0.025", "0.01"};
-    
+    pair<vector<double>, vector<double> > params;
+    double IC = 1;
+    double DF = -0.3;
+    params.first.push_back(4*IC);
+    params.first.push_back(2*IC);
+    params.first.push_back(1*IC);
+    params.second.push_back(4*DF);
+    params.second.push_back(2*DF);
+    params.second.push_back(1*DF);
+
     static struct option long_options[] = {
         {"k", 1, 0, 'k'},
         {"limit", 1, 0, 'l'},
         {"alpha", 1, 0, 'a'},
         {"iterative", 1, 0, 'i'},
         {"tonly", 0, 0, 't'},
+        {"params", 1, 0, 'p'},
         {"complement", 0, 0, 'c'}, //long alias for -c
         {"fasta", 0, 0, 'f'}, //long alias for -f
         {"sep", 0, 0, 's'}, //long alias for -s
@@ -166,6 +179,9 @@ int main(int argc, char* argv[]){
         case 'd':
             //opt_dotbracked = true;
             break;
+        case 'p':
+            opt_paramsfile = optarg;
+            break;
         case '?':
             char opt[20];
             sprintf(opt, "Unknown arg \"-%c\"\n", optopt);
@@ -184,7 +200,11 @@ int main(int argc, char* argv[]){
     if(opt_limit != -1) param_limit = opt_limit;
     if(opt_alpha != -1) param_alpha = opt_alpha;
     if(opt_iterative != -1) param_iterative = opt_iterative;
-    
+    if(opt_paramsfile != "") {
+        ifstream pfile(opt_paramsfile.c_str(), ifstream::in);
+        for (int i=0; i<param_k; i++) pfile >> params.first[i];
+        for (int i=0; i<param_k; i++) pfile >> params.second[i];
+    }
     /*cout<<optind<<endl;
     for ( ; optind < argc; optind++) {
             if (argv[optind]) {
@@ -228,6 +248,8 @@ int main(int argc, char* argv[]){
                : desc.search_order_to_str(desc.predef_srch_order).c_str()) );
         printf("Order training params:          k=%u limit=%u alpha=%s iter=%s\n",
                param_k, param_limit, alphas[param_alpha], (param_iterative? "true":"false") );
+        printf("IC parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.first[i]); printf("\n");
+        printf("DF parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.second[i]); printf("\n");
         printf("------------------------------------------------------------------\n");
         
         if(opt_tonly){
@@ -238,7 +260,7 @@ int main(int argc, char* argv[]){
         }
     }
 
-    Orderer orderer(desc, param_k, param_limit, param_alpha, param_iterative);
+    Orderer orderer(desc, param_k, param_limit, param_alpha, param_iterative, params);
     Simple_Search ssearch(desc, orderer);
     string line;
     long long total_bases_scanned = 0;

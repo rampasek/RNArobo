@@ -25,9 +25,10 @@
 
 using namespace std;
 
-Orderer::Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, unsigned int alphaID, bool doIT){
+Orderer::Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, unsigned int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams){
     srand ( time(NULL) );
     
+    heuristicParams = hParams;
     desc = &dsc;
     K = min((int)k, (int)desc->sses.size() -1 -(int)desc->predef_srch_order.size());
     trainSetLimit = trainSL;
@@ -184,12 +185,12 @@ int Orderer::getTupleScore(vector<int> &tuple){
         
         alreadyFixed[tuple[i]] = true;
         
-        //calculate heuristic score for this sse and add it to the tuple's score
-        double elementScore = ic;
-        elementScore -= 0.3*domainFlexibility;
+        //calculate heuristic score for this sse and add it to the tuple's score using heuristicParams
+        double elementScore = heuristicParams.first[i]*ic;
+        elementScore += heuristicParams.second[i]*domainFlexibility;
         
-        //scale weight of the elemenet by exp function of the position in the tuple
-        tupleScore += pow(2., tuple.size()-i-1) * elementScore;
+        //weight scaling should be included in heuristicParams
+				tupleScore += elementScore;
         
        //cout<<tuple[i]<<">  ic= "<<ic<<"\n    apxDF= "<<domainFlexibility<<endl;
     }
