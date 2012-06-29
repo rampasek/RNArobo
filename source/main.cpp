@@ -38,7 +38,6 @@ Usage: rnarobo [OPTIONS] <descriptor-file> <sequence-file>\n\
      -c             search both strands of database\n\
      -f             print output in plain FASTA format\n\
      -s             print output in FASTA format with element separators\n\
-     --params FILE  override parameters for heuristic function with constants supplied in file\n\
      \n\
   To override default search order training parameters:\n\
   (defaults: --k 3 --limit 40 --alpha 0.025 --iterative TRUE )\n\
@@ -248,8 +247,8 @@ int main(int argc, char* argv[]){
                : desc.search_order_to_str(desc.predef_srch_order).c_str()) );
         printf("Order training params:          k=%u limit=%u alpha=%s iter=%s\n",
                param_k, param_limit, alphas[param_alpha], (param_iterative? "true":"false") );
-        printf("IC parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.first[i]); printf("\n");
-        printf("DF parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.second[i]); printf("\n");
+        //printf("IC parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.first[i]); printf("\n");
+        //printf("DF parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.second[i]); printf("\n");
         printf("------------------------------------------------------------------\n");
         
         if(opt_tonly){
