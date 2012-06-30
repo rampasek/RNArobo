@@ -76,7 +76,7 @@ void Orderer::prepareKTuples(){
 
     //generate (by brute-force) and score all K-tuples
     vector< pair<int, vector<int> > > allTuples;
-    allTuples.reserve( pow(elementsToOrder.size(), K) );
+    allTuples.reserve( (unsigned int) pow((double)elementsToOrder.size(), (int)K) );
     vector< vector<int>::iterator > iters(K, elementsToOrder.begin());
 
     vector<int> tuple(K);
@@ -195,7 +195,7 @@ int Orderer::getTupleScore(vector<int> &tuple){
        //cout<<tuple[i]<<">  ic= "<<ic<<"\n    apxDF= "<<domainFlexibility<<endl;
     }
     //cout<<"TS: "<<tupleScore<<endl;
-    return round(tupleScore);
+    return (int)round(tupleScore);
 }
 
 ///calculate approximate flexibility of the sse's search domain size
@@ -451,7 +451,7 @@ int Orderer::sampleKTuple(){
 ///augument the current search ordering to a complete one
 void Orderer::completeSearchOrder(){
     vector<bool> has(desc->sses.size(),false);
-    vector< pair<int, int> > auto_order;
+    vector< pair<double, int> > auto_order;
     for(int i=0;i<searchOrder.size();i++) has[searchOrder[i]] = true;
 
     searchOrder.reserve(desc->sses.size()-1);
@@ -460,7 +460,7 @@ void Orderer::completeSearchOrder(){
     auto_order.reserve(desc->sses.size() - searchOrder.size());
     for(int i=1;i<desc->sses.size();i++){
         if(!has[i]){
-            int score = desc->sses[i].infContent;
+            double score = desc->sses[i].infContent;
             auto_order.push_back( make_pair(score, i) );
         }
     }
