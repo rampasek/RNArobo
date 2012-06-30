@@ -142,7 +142,7 @@ int welchTest(vector<double> &x, vector<double> &y, double* criticalValues){
     df /= g1*g1/(N1-1) + g2*g2/(N2-1);
        
     //round the number of degrees of freedom (to be used for look up in a table of critical values)
-    int roundedDF = round(df);
+    int roundedDF = (int)round(df);
     if (roundedDF <= 0 ) { roundedDF = 1; }
     if (roundedDF > 100) { roundedDF = 101; } //take "infinite" d.f.
     

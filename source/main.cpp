@@ -127,7 +127,7 @@ int main(int argc, char* argv[]){
             if(opt_limit <= 0) die("Illegal value of parameter 'limit': must be > 0.");
             break;
         case 'a':
-            opt_alpha = round(atof(optarg)*1000);
+            opt_alpha = (int)round(atof(optarg)*1000);
             switch(opt_alpha){
             case 200:
                 opt_alpha = 0;

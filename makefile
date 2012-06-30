@@ -38,7 +38,7 @@ install: $(EXE)
    
 clean:
 	@echo Making clean.
-	rm -rf $(EXE) $(OBJS) $(DEPS) $(EXE_PROFILER_NAME) 
+	@rm -rf $(EXE) $(OBJS) $(DEPS) $(EXE_PROFILER_NAME) 
 
                
 profiler: $(OBJS) $(GOOGLE_MALLOCLIB)
