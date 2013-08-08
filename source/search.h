@@ -1,6 +1,4 @@
 /*
- * $Id: search.h,v 1.7 2012-04-16 19:27:26 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : the header file for search.cpp
  *
@@ -36,10 +34,12 @@ class Simple_Search{
         list<interval_pair> get_domain(intervals &grid, string &seq, SSE &se);
         interval_pair get_motif_element_domain(intervals &grid, string &seq, int index_in_motif);
         list<interval> get_next_match(SSE &se);
-        void flood_ss(SSE &se, string &seq, int index_in_seq);
-        void get_ss_matches(SSE &se, string &seq, int lower_bound, int upper_bound, int end);
-        void flood_h(SSE &se, string &seq, int strand1_begin, int strand2_end);
-        void get_h_matches(SSE &se, string &seq, int lower_bound1, int upper_bound1, int end,
+        void get_naive_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
+        void get_simple_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
+        void run_fwddp_ss(SSE &se, string &seq, interval &begin_reg);
+        void trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
+        void run_fwddp_h(SSE &se, string &seq, int strand1_begin, int strand2_end);
+        void trace_bckdp_h(SSE &se, string &seq, int lower_bound1, int upper_bound1, int end,
                               int begin, int lower_bound2, int upper_bound2);
         void set_grid(intervals &grid, SSE &se, list<interval> &match);
         void reset_grid(intervals &grid, SSE &se);

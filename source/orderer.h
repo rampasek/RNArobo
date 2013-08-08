@@ -1,6 +1,4 @@
 /*
- * $Id: orderer.h,v 1.9 2012-04-23 08:08:03 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : the header file for orderer.cpp
  *

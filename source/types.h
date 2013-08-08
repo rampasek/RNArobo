@@ -1,6 +1,4 @@
 /*
- * $Id: types.h,v 1.7 2012-04-14 19:10:25 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : definition of data types used throughout this project
  *
@@ -43,7 +41,7 @@ struct SSE{
     double infContent;          //estimated information content (relative entropy) of the SSE
 
     Matrix table;                   // n-dimensional sparse matrix for dynamic programming
-    set< pair<int, int> > occurrences;  // whether on given position(s) ends a match
+    set<interval> occurrences;  // whether on given position(s) ends a match
     queue<interval> match_buffer;   // buffer for unprocessed matches (in a domain)
     //map< pair<int,int>, set< pair<int,int> > > h_beginnings_cache; // cache of traceback if helical element
     //map< int, set<int> > ss_beginnings_cache;   // cache of traceback if single strand element

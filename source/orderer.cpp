@@ -1,6 +1,4 @@
 /*
- * $Id: orderer.cpp,v 1.13 2012-05-07 14:22:38 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : implementation of Orderer class, which is to find a "good"
  *                element ordering for the backtrack in Simple_Search

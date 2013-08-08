@@ -1,6 +1,4 @@
 /*
- * $Id: matrix.cpp,v 1.4 2012-03-08 14:29:58 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : the data structure for dynamic programming
  *
@@ -21,7 +19,7 @@
 using namespace std;
 
 //get value of a cell specified by given key of type vector<int>
-bool Matrix::get(tr1::array<int, 7> &key){
+bool Matrix::get(tr1::array<unsigned int, 7> &key){
     //if(key.size()!=num_dimensions) return 0;
     ++access_counter;
     
@@ -41,7 +39,7 @@ bool Matrix::get(tr1::array<int, 7> &key){
 }
 
 //set value of a cell specified by given key of type vector<int>
-void Matrix::set(tr1::array<int, 7> &key){
+void Matrix::set(tr1::array<unsigned int, 7> &key){
     //if(key.size()!=num_dimensions) return;
     ++access_counter;
     

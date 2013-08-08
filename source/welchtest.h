@@ -1,6 +1,4 @@
 /*
- * $Id: welchtest.h,v 1.3 2012-04-14 19:10:25 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : Welch Two Sample t-test
  *                (performs the upper, one-sided test)

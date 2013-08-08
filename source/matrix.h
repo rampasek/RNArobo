@@ -1,6 +1,4 @@
 /*
- * $Id: matrix.h,v 1.5 2012-03-14 14:44:06 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : the header file for matrix.cpp
  *
@@ -27,13 +25,14 @@ class Matrix{
         Matrix(unsigned int num_dimensions):num_dimensions(num_dimensions), access_counter(0ULL){};
 
         //bool get2(int num_args, ...);
-        bool get(tr1::array<int, 7> &key);
+        bool get(tr1::array<unsigned int, 7> &key);
         //void set2(int num_args, ...);
-        void set(tr1::array<int, 7> &key);
+        void set(tr1::array<unsigned int, 7> &key);
         void clear(){ matrix.clear(); };
         bool empty(){ return matrix.empty(); };
         void set_dimensions(unsigned int new_num_dimensions){ num_dimensions=new_num_dimensions; clear(); };
         unsigned long long int ops(){ return access_counter; }
+        void incOpsCounter(){ ++access_counter; }
         void resetOpsCounter(){ access_counter=0; }
     private:
         unsigned int num_dimensions;

@@ -1,6 +1,4 @@
 /*
- * $Id: generalfuncs.h,v 1.6 2012-04-16 19:27:24 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : the header file for generalfuncs.cpp
  *

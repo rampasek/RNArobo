@@ -1,6 +1,4 @@
 /*
- * $Id: descriptor.h,v 1.6 2012-04-14 19:10:23 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : the header file for descriptor.cpp
  *

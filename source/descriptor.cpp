@@ -1,6 +1,4 @@
 /*
- * $Id: descriptor.cpp,v 1.11 2012-04-21 15:47:52 laci Exp $
- *
  * Project      : RNA motif searching in genomic sequences
  * Description  : the implementation of a class representing a motif descriptor
  *
