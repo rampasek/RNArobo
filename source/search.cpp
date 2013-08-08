@@ -134,13 +134,13 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
         }
         
     // single strand element with NO wild cards or insertions
-    /*} else if(se.size_range.first==se.size_range.second && se.num_insertions==0){
+    } else if(se.size_range.first==se.size_range.second && se.num_insertions==0){
         get_naive_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
 
     // single strand element with NO mismatches or insertions
-    } else if(se.num_mismatches==0 && se.num_insertions==0){
+    } else if(se.num_insertions==0){
         get_simple_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
-      */  
+      
     // general single strand element DP
     } else {
         run_fwddp_ss(se, seq, domain.front().BEGIN);
@@ -308,38 +308,43 @@ void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_
     int patt_length=se.pattern.size();
     int seq_length=seq.size();
 
-    set <interval> visited;
-    queue <interval> frontier;
+    set < pair<interval,int> > visited;
+    queue < pair<interval,int> > frontier;
     for(int pos=begin_reg.first; pos<begin_reg.second; pos++){
         //align seq and pattern
-        int i, j;
+        int i, j, mm;
         visited.clear();    
         
-        frontier.push(make_pair(pos, 0));
+        frontier.push(make_pair(make_pair(pos, 0), 0));
         
         while(!frontier.empty()){
             if(visited.count(frontier.front())!=0){
                 frontier.pop();
                 continue;
             }
-            i=frontier.front().first;
-            j=frontier.front().second;
+            i=frontier.front().first.first;
+            j=frontier.front().first.second;
+            mm=frontier.front().second;
             visited.insert(frontier.front());
             frontier.pop();
             
             se.table.incOpsCounter();
             
-            if(j<patt_length && i<seq_length && fits(seq[i], se.pattern[j])){
-                frontier.push(make_pair(i+1, j+1));
+            if(j<patt_length && i<seq_length){
+                if(fits(seq[i], se.pattern[j])){ //if matches
+                    frontier.push(make_pair(make_pair(i+1, j+1), mm));
+                } else if(mm+1<=se.num_mismatches){ //if a mismatch
+                    frontier.push(make_pair(make_pair(i+1, j+1), mm+1));
+                }
                 se.table.incOpsCounter();
             }
             if(j<patt_length && se.pattern[j]=='*'){ //skip the wild card
-                frontier.push(make_pair(i, j+1));
+                frontier.push(make_pair(make_pair(i, j+1), mm));
                 se.table.incOpsCounter();
             }
             
             //if it is a complete match, put it to the list of occurrences
-            if(j==patt_length){
+            if(j==patt_length && mm<=se.num_mismatches){
                 int end=i;
                 if(end_reg.first < end && end <= end_reg.second){
                     //se.occurrences.insert( make_pair(end, 0) ); //at position 'i-1' in seq ends a match
