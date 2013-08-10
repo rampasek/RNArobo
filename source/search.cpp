@@ -140,7 +140,7 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
     // single strand element with NO mismatches or insertions
     } else if(se.num_insertions==0){
         get_simple_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
-      
+     
     // general single strand element DP
     } else {
         run_fwddp_ss(se, seq, domain.front().BEGIN);
@@ -398,7 +398,7 @@ void Simple_Search::run_fwddp_ss(SSE &se, string &seq, interval &begin_reg){
             b = tmp_vertex[4];
 
             //if it is a complete match, put it to the list of occurrences
-            if(j==patt_length && b==0){
+            if(j==patt_length && (b==0 || n==0)){
                 se.occurrences.insert(make_pair(i,0)); //at position (i-1) in seq ends a match
                 //cout<<i<<endl;
                 #ifdef DEBUG
@@ -481,6 +481,13 @@ void Simple_Search::trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, in
             for(int j=0; j<=se.num_mismatches; j++){
                 tmp_vertex[2] = j;      //set position corresponding to #mismatches
                 vertex_queue.push(tmp_vertex);
+                
+                //special case for "all wild card patterns"
+                //=> if all '*' were skiped when matching, flag 'b' ("prev insert") never got set back to zero
+                tmp_vertex[3] = 0;    //set #insertions to zero
+                tmp_vertex[4] = 1;    //"prev insert" true
+                vertex_queue.push(tmp_vertex);
+                tmp_vertex[4] = 0;
             }
         }
 
@@ -515,7 +522,7 @@ void Simple_Search::trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, in
             }
 
             //we can have got here by aligning current symbol from pattern to text
-            if(i-1>=0 && j-1>=0 && b==0){
+            if(i-1>=0 && j-1>=0 && (b==0 || n==0)){
                 //not i and j, because seq and se.pattern are indexed from 0
                 x = 1-(int)(fits(seq[i-1],se.pattern[j-1]));
 
@@ -614,7 +621,7 @@ void Simple_Search::run_fwddp_h(SSE &se, string &seq, int strand1_begin, int str
         b = tmp_vertex[6];
 
         //if it is a complete match, put it to the list of occurrences
-        if(k==patt_length && b==0){
+        if(k==patt_length && (b==0 || n==0)){
             //at position (i-1) in seq ends a match of 1.strand
             //at position (j-1) in seq ends a match of 2.strand
             //se.occurrences.set2(2,i,j);
@@ -715,6 +722,13 @@ void Simple_Search::trace_bckdp_h(SSE &se, string &seq, int lower_bound1, int up
                 tmp_vertex[3] = k;    //set position corresponding to #mismatches
                 vertex_queue.push(tmp_vertex);
             }
+            
+            //special case for "all wild card patterns"
+            //=> if all '*' were skiped when matching, flag 'b' ("prev insert") never got set back to zero
+            tmp_vertex[5] = 0;    //set #insertions to zero
+            tmp_vertex[6] = 1;    //"prev insert" true
+            vertex_queue.push(tmp_vertex);
+            tmp_vertex[6] = 0;
         }
     }
 
