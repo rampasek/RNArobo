@@ -37,6 +37,9 @@ struct SSE{
     int num_mispairings;        // the number of tolerated mispaired positions in the helix
     interval strand_dist;       // the number of nucleotides between strands of the helix
     string transf_matrix;       // transformation matrix for strand complementarity
+    string stripped_pattern;    // as 'pattern' but stripped of leading/trailing '*'
+    string stripped_complement; // as 'complement' but stripped of leading/trailing '*'
+    interval num_wc_padding;    // number of leading/trailing '*' in original 'pattern'
     
     double infContent;          //estimated information content (relative entropy) of the SSE
 

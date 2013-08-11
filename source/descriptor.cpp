@@ -20,6 +20,8 @@
 #include "types.h"
 #include "generalfuncs.h"
 
+#define CHECK_OK -1
+
 using namespace std;
 using namespace GF;
 
@@ -48,13 +50,25 @@ Descriptor::Descriptor(ifstream &fin){
     }
 
     // check whether all sses are defined and descriptor contains no inconsistencies
-    if(! check_consistency() ) {
-        err_str="The descriptor is not complete or contains a logical error";
+    int err_code = check_consistency();
+    if(err_code != CHECK_OK) {
+        err_str="The descriptor is incomplete or contains a logical error";
+        
+        if(err_code == -2){
+            err_str += " in the reorder command";
+        } else {
+            vector<int> err_element_id(1);
+            err_element_id[0] = err_code;
+            string err_element_name = search_order_to_str(err_element_id);
+            
+            err_str += " in element " + err_element_name;
+        }
+        
         return;
     }
 
-    // compute sizes of SSEs and distances between strands of helices
-    compute_sizes();
+    // compute auxiliary stats, e.g. sizes of SSEs, distances between strands of helices
+    compute_auxiliary_stats();
     
     // compute information content of all SSEs
     compute_inf_contents();
@@ -250,7 +264,7 @@ bool Descriptor::expand_wildcards(string &s){
 }
 
 // consistency check + wildcars exansion
-bool Descriptor::check_consistency(){
+int Descriptor::check_consistency(){
     /*
     for(int i=1;i<sses.size();i++){
         cout<<i<<": \n";
@@ -263,31 +277,34 @@ bool Descriptor::check_consistency(){
     for(int i=1;i<sses.size();i++){
         switch (sses[i].is_helix){
             case true: //a helix
-                if( !expand_wildcards(sses[i].pattern) ) return false;
-                if( !expand_wildcards(sses[i].complement) ) return false;
-                if( sses[i].pattern.size() != sses[i].complement.size() ) return false;
-                if( sses[i].pattern.size() == 0) return false;
-                if( sses[i].num_mismatches > sses[i].pattern.size()) return false;
-                if( sses[i].num_mispairings > sses[i].pattern.size()) return false;
+                if( !expand_wildcards(sses[i].pattern) ) return sses[i].id;
+                if( !expand_wildcards(sses[i].complement) ) return sses[i].id;
+                if( sses[i].pattern.size() != sses[i].complement.size() ) return sses[i].id;
+                if( sses[i].pattern.size() == 0) return sses[i].id;
+                if( sses[i].num_mismatches > sses[i].pattern.size()) return sses[i].id;
+                if( sses[i].num_mispairings > sses[i].pattern.size()) return sses[i].id;
 
                 reverse(sses[i].complement.begin(), sses[i].complement.end()); //reverse the complement
                 for(int j=0;j<sses[i].pattern.size();j++){ //complementarity check
-                    if(!is_complemntary(sses[i].pattern[j], sses[i].complement[j], sses[i].transf_matrix)) return false;
+                    //if there is a wild card in one of the strands, there must be one also in the other strand
+                    if((sses[i].pattern[j]=='*') != (sses[i].complement[j]=='*')) return sses[i].id;
+                    //check complementarity
+                    if(!is_complemntary(sses[i].pattern[j], sses[i].complement[j], sses[i].transf_matrix)) return sses[i].id;
                 }
                 break;
             case false: //a single strand
-                if( !expand_wildcards(sses[i].pattern) ) return false;
-                if( sses[i].pattern.size() == 0) return false;
-                if( sses[i].num_mismatches > sses[i].pattern.size()) return false;
+                if( !expand_wildcards(sses[i].pattern) ) return sses[i].id;
+                if( sses[i].pattern.size() == 0) return sses[i].id;
+                if( sses[i].num_mismatches > sses[i].pattern.size()) return sses[i].id;
                 break;
         }
     }
 
-    if( !has_no_duplicates(predef_srch_order) ) return false;
-    return true;
+    if( !has_no_duplicates(predef_srch_order) ) return -2;
+    return CHECK_OK;
 }
 
-void Descriptor::compute_sizes(){
+void Descriptor::compute_auxiliary_stats(){
     //compute size range of sses
     for(int i=1;i<sses.size();i++){
         int count=0;
@@ -313,7 +330,37 @@ void Descriptor::compute_sizes(){
             sses[i].strand_dist.second = max_dis;
         }
     }
-
+    //get counts of leading/trailing wild cards and get stripped patterns
+    for(int i=1;i<sses.size();i++){
+        //get the wild card prefix/suffix lengths
+        int num_leading=0, num_trailing=0;
+        int j=0, count=0;
+        bool b=true;
+        while(j<sses[i].pattern.size()){
+            if(sses[i].pattern[j]=='*'){
+                ++count;
+            } else {
+                if(b){
+                    num_leading = count; //length of wild card prefix
+                    b = false;
+                }
+                count = 0;
+            }
+            j++;
+        }
+        num_trailing = count; //length of wild card suffix
+        
+        sses[i].num_wc_padding = make_pair(num_leading, num_trailing);
+            
+        //strip the patterns of wild card prefix and suffix
+        if (sses[i].is_helix){
+            sses[i].stripped_pattern = sses[i].pattern.substr(num_leading, sses[i].pattern.size()-num_trailing-num_leading);
+            sses[i].stripped_complement = sses[i].complement.substr(num_leading, sses[i].complement.size()-num_trailing-num_leading);
+        } else {
+            sses[i].stripped_pattern = sses[i].pattern.substr(num_leading, sses[i].pattern.size()-num_trailing-num_leading);
+        }
+    }
+    
     /*
     for(int i=1;i<sses.size();i++){
         cout<<i<<": \n";
@@ -321,7 +368,11 @@ void Descriptor::compute_sizes(){
         cout<<"strand_dist "<<sses[i].strand_dist.first<<" "<<sses[i].strand_dist.second<<endl;
         cout<<"seq(comp) "<<sses[i].pattern<<" "<<sses[i].complement<<endl;
         cout<<"mismach(pair) "<<sses[i].num_mismatches<<" "<<sses[i].num_mispairings<<endl;
-        cout<<"insert. "<<sses[i].num_insertions<<" "<<sses[i].allowed_insertion<<endl<<endl;
+        cout<<"insert. "<<sses[i].num_insertions<<" "<<sses[i].allowed_insertion<<endl;
+        cout<<"wc_padding "<<sses[i].num_wc_padding.first<<" "<<sses[i].num_wc_padding.second<<endl;
+        cout<<"stripped pattern    "<<sses[i].stripped_pattern<<" vs "<<sses[i].pattern<<endl;
+        cout<<"stripped complement "<<sses[i].stripped_complement<<" vs "<<sses[i].complement<<endl;
+        cout<<endl;
     }
     */
 }

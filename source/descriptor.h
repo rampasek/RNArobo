@@ -19,9 +19,9 @@ class Descriptor{
         vector<int> motif;          // the list of all SSEs, i-th number is index to the array "sses",
                                     //   if the number is negative it signs for the second strand
                                     //   of the helix which has index "-number" in "sses"
-        vector<int> pknot_levels;   
         map<string, int> transl;    // a transl. dictionary from original names (h1,s5,...) to indices in "sses"
         vector<int> predef_srch_order;// the ordered list of SSEs to be searched (indices to the vector "sses") predefined by a user
+        vector<int> pknot_levels;   // UNUSED
 
         Descriptor():initialized(false){};
         Descriptor(ifstream &fin);
@@ -39,10 +39,10 @@ class Descriptor{
         bool parse_desc_properties(string line);
         bool parse_desc_order(string line);
         bool expand_wildcards(string &s);
-        bool check_consistency();
+        int  check_consistency();
         bool has_no_duplicates(vector<int> vec);
         void compute_inf_contents();
-        void compute_sizes();
+        void compute_auxiliary_stats();
         void compute_pknot_levels();
 };
 

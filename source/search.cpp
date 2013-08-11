@@ -133,19 +133,25 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
             }
         }
         
-    // single strand element with NO wild cards or insertions
-    } else if(se.size_range.first==se.size_range.second && se.num_insertions==0){
-        get_naive_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
-
-    // single strand element with NO mismatches or insertions
-    } else if(se.num_insertions==0){
-        get_simple_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
-     
-    // general single strand element DP
+    // for single strand elements
     } else {
-        run_fwddp_ss(se, seq, domain.front().BEGIN);
-        //printf("tracing <%d, %d) - <%d, %d)\n", domain.front().BEGIN.first, domain.front().BEGIN.second, domain.front().END.first, domain.front().END.second);
-        trace_bckdp_ss(se, seq, domain.front().BEGIN, domain.front().END);
+        //true if the element pattern has fix-sized core, i.e. wild cards are only as prefix/suffix
+        bool fixed_core = (se.size_range.first==(se.size_range.second-se.num_wc_padding.first-se.num_wc_padding.second));
+        
+        // single strand element with fix-sized core and with NO other wild cards nor insertions
+        if(fixed_core && se.num_insertions==0){
+            get_naive_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
+
+        // single strand element with NO insertions
+        } else if(se.num_insertions==0){
+            get_simple_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
+
+        // general single strand element DP
+        } else {
+            run_fwddp_ss(se, seq, domain.front().BEGIN);
+            //printf("tracing <%d, %d) - <%d, %d)\n", domain.front().BEGIN.first, domain.front().BEGIN.second, domain.front().END.first, domain.front().END.second);
+            trace_bckdp_ss(se, seq, domain.front().BEGIN, domain.front().END);
+        }
     }
 
     list<interval> match = get_next_match(se);
@@ -156,14 +162,22 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
             #ifdef DEBUG
                 cout<<"SOLUTION!!!"<<endl;
             #endif
+            
             solutions.push_back(grid);
+            
             #ifdef SKIP
                 have_solution=true;
             #endif
         } else {
             #ifdef DEBUG
                 cout<<"DOWN"<<endl;
+                SSE& t_se = desc->sses[ orderer->searchOrder[ind+1] ];
+                cout<<"looking for "<<t_se.id<<": ";
+                for(int i=0;i<desc->motif.size();i++){
+                    cout<<desc->motif[i]<<"("<<grid[i].first<<"-"<<grid[i].second<<") ";
+                }cout<<endl;
             #endif
+            
             find_motif(ind+1, seq, grid);
         }
 
@@ -187,10 +201,12 @@ interval_pair Simple_Search::get_motif_element_domain(intervals &grid, string &s
     int left_ncover_bound = -1;
     int min_left_shift = 0;
     int max_left_shift = 0;
+    bool fixed_left = false;
     for(int i=index_in_motif-1;i>=0;i--){
         if( grid[i].second != -1){
             left_search_bound = grid[i].second + min_left_shift;
             left_ncover_bound = grid[i].second + max_left_shift;
+            fixed_left = true;
             break;
         } else {
             min_left_shift += desc->sses[ abs(desc->motif[i]) ].size_range.first;  //minimum of size of the sse
@@ -204,10 +220,12 @@ interval_pair Simple_Search::get_motif_element_domain(intervals &grid, string &s
     int right_ncover_bound = -1;
     int min_right_shift = 0;
     int max_right_shift = 0;
+    bool fixed_right = false;
     for(int i=index_in_motif+1;i<desc->motif.size();i++){
         if( grid[i].first != -1){
             right_search_bound = grid[i].first - min_right_shift;
             right_ncover_bound = grid[i].first - max_right_shift;
+            fixed_right = true;
             break;
         } else {
             min_right_shift += desc->sses[ abs(desc->motif[i]) ].size_range.first; //minimum of size of the sse
@@ -224,18 +242,28 @@ interval_pair Simple_Search::get_motif_element_domain(intervals &grid, string &s
     //  but if both boundaries are -1, it means there IS NOT an interval to be necessarily covered
 
 
-    //combine search interval, necessary cover interval and minimal size of the element to optain domain
+    ///combine search interval, necessary-to-cover interval and minimal size of the element to obtain the *search domain*
     int lower_begin_bound = left_search_bound;
+    //if an occurrence is already fixed at the right side, then this element must begin so that the gap between these two 
+    //   elements could be (at least theoretically) filled in by the elmenets inbetween them
+    if(fixed_right) lower_begin_bound = max(left_search_bound,
+        right_ncover_bound - desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.second);
+    
     //int upper_begin_bound = max(left_search_bound+1, right_search_bound - desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.first);
-    int upper_begin_bound = max(left_search_bound+1, right_search_bound);
-        //if necessary cover interval beginning is defined then a match must start at/before it
-        if(left_ncover_bound != -1) upper_begin_bound = min(left_ncover_bound+1, upper_begin_bound);
+    int upper_begin_bound = max(left_search_bound+1, right_search_bound+1);
+    //if necessary cover interval beginning is defined then a match must start at/before it
+    if(fixed_left) upper_begin_bound = min(left_ncover_bound+1, upper_begin_bound);
 
-    //int lower_end_bound = min(right_search_bound-1, left_search_bound + desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.first);
-    int lower_end_bound = min(right_search_bound-1, left_search_bound );
-        //if necessary cover interval end is defined then a match must end at/after it
-        if(right_ncover_bound != -1) lower_end_bound = max(right_ncover_bound-1, lower_end_bound);
+
+    int lower_end_bound = min(right_search_bound-1, left_search_bound-1);
+    //if necessary cover interval end is defined then a match must end at/after it
+    if(fixed_right) lower_end_bound = max(right_ncover_bound-1, lower_end_bound);
+        
     int upper_end_bound = right_search_bound;
+    //if an occurrence is already fixed at the left side, then this element must end so that the gap between these two 
+    //   elements could be (at least theoretically) filled in by the elmenets inbetween them
+    if(fixed_left) upper_end_bound = min(right_search_bound,
+        left_ncover_bound + desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.second);
 
     return make_pair( make_pair(lower_begin_bound,upper_begin_bound), make_pair(lower_end_bound,upper_end_bound) );
 }
@@ -261,23 +289,26 @@ list<interval_pair> Simple_Search::get_domain(intervals &grid, string &seq, SSE 
 
 /* Run naive pattern search for @se.pattern in @seq. All occurrences must begin
  * at index within @begin_reg.first...@begin_reg.second and end within @end_reg.
- * !!!Works for single strand elements with *NO wild cards or insertions*!!!
+ * !!!Works for single strand elements with *NO inner wild cards or insertions*!!!
  */
 void Simple_Search::get_naive_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
-    int patt_length=se.pattern.size();
+    int patt_length=se.stripped_pattern.size();
     int seq_length=seq.size();
-    for(int i=begin_reg.first; i<begin_reg.second; i++){
-        //align seq and pattern
+    interval match;
+    set<interval> found_matches;
+    
+    for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; i++){
+        //align seq and stripped_pattern
         int j=0;
         int mm=0;
         if(se.num_mismatches==0){
-            while(j<patt_length && i+j<seq_length && fits(seq[i+j], se.pattern[j])){
+            while(j<patt_length && i+j<seq_length && fits(seq[i+j], se.stripped_pattern[j])){
                 j++;
                 se.table.incOpsCounter();
             }
         } else { //allow mismatches
             while(j<patt_length && i+j<seq_length && mm<=se.num_mismatches){
-                if(fits(seq[i+j], se.pattern[j])){
+                if(fits(seq[i+j], se.stripped_pattern[j])){
                     j++;
                 } else {
                     j++;
@@ -288,29 +319,53 @@ void Simple_Search::get_naive_ss_matches(SSE &se, string &seq, interval &begin_r
         }
         //if it is a complete match, put it to the list of occurrences
         if(j==patt_length && mm<=se.num_mismatches){
+            int start=i;
             int end=i+j;
-            if(end_reg.first < end && end <= end_reg.second){
-                //se.occurrences.insert( make_pair(end, 0) ); //at position 'i+j-1' in seq ends a match
-                se.match_buffer.push( make_pair(i, end) );
-                #ifdef DEBUG
-                cout<<se.id<<" has match "<<i+1<<" to "<<end<<endl;
-                #endif
+            //add also all possible matches of leading/trailing wild cards
+            for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
+                for(int suffix_l=0; suffix_l<=se.num_wc_padding.second; ++suffix_l){
+                    match.first = start - prefix_l;
+                    match.second = end + suffix_l;
+                    /*if(se.id==4) {
+                        cout<<"SDOMAIN "<<begin_reg.first<<"-"<<begin_reg.second<<"   "<<end_reg.first<<"-"<<end_reg.second<<endl;
+                        cout<<"MATCH   "<<match.first<<"-"<<match.second<<"  "<<(match.first >= begin_reg.first)<<(end_reg.first < match.second)<<(match.second <= end_reg.second)<<endl;
+                    }*/
+                    //check if the match is inside the search domain
+                    if(end_reg.first < match.second && match.second <= end_reg.second
+                        && match.first >= begin_reg.first && match.first < begin_reg.second)
+                    {
+                        //se.occurrences.insert( make_pair(end, 0) ); //at position 'i+j-1' in seq ends a match
+                        if(found_matches.count(match)==0){
+                            found_matches.insert( match );
+                            se.match_buffer.push( match );
+                        }
+                        #ifdef DEBUG
+                            cout<<se.id<<" has match(n) "<<match.first+1<<" to "<<match.second<<" | ";
+                            cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
+                        #endif
+                            
+                        se.table.incOpsCounter();
+                    }
+                }
             }
+            
         }
     }
 }
 
 /* Run simple DP pattern search for @se.pattern in @seq. All occurrences must begin
  * at index within @begin_reg.first...@begin_reg.second and end within @end_reg.
- * !!!Works for single strand elements with *NO mismatches or insertions*!!!
+ * !!!Works for single strand elements with *NO insertions*!!!
  */
 void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
-    int patt_length=se.pattern.size();
+    int patt_length=se.stripped_pattern.size();
     int seq_length=seq.size();
-
+    interval match;
+    set<interval> found_matches;
+    
     set < pair<interval,int> > visited;
     queue < pair<interval,int> > frontier;
-    for(int pos=begin_reg.first; pos<begin_reg.second; pos++){
+    for(int pos=begin_reg.first; pos<begin_reg.second+se.num_wc_padding.first; pos++){
         //align seq and pattern
         int i, j, mm;
         visited.clear();    
@@ -331,28 +386,46 @@ void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_
             se.table.incOpsCounter();
             
             if(j<patt_length && i<seq_length){
-                if(fits(seq[i], se.pattern[j])){ //if matches
+                if(fits(seq[i], se.stripped_pattern[j])){ //if matches
                     frontier.push(make_pair(make_pair(i+1, j+1), mm));
                 } else if(mm+1<=se.num_mismatches){ //if a mismatch
                     frontier.push(make_pair(make_pair(i+1, j+1), mm+1));
                 }
                 se.table.incOpsCounter();
             }
-            if(j<patt_length && se.pattern[j]=='*'){ //skip the wild card
+            if(j<patt_length && se.stripped_pattern[j]=='*'){ //skip the wild card
                 frontier.push(make_pair(make_pair(i, j+1), mm));
                 se.table.incOpsCounter();
             }
             
             //if it is a complete match, put it to the list of occurrences
             if(j==patt_length && mm<=se.num_mismatches){
+                int start=pos;
                 int end=i;
-                if(end_reg.first < end && end <= end_reg.second){
-                    //se.occurrences.insert( make_pair(end, 0) ); //at position 'i-1' in seq ends a match
-                    se.match_buffer.push( make_pair(pos, end) );
-                    #ifdef DEBUG
-                    cout<<se.id<<" has match "<<pos+1<<" to "<<end<<endl;
-                    #endif
+                //add also all possible matches of leading/trailing wild cards
+                for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
+                    for(int suffix_l=0; suffix_l<=se.num_wc_padding.second; ++suffix_l){
+                        match.first = start - prefix_l;
+                        match.second = end + suffix_l;
+                        //check if the match is inside the search domain
+                        if(end_reg.first < match.second && match.second <= end_reg.second
+                            && match.first >= begin_reg.first && match.first < begin_reg.second)
+                        {
+                            //se.occurrences.insert( make_pair(end, 0) ); //at position 'pos-1' in seq ends a match
+                            if(found_matches.count(match)==0){
+                                found_matches.insert( match );
+                                se.match_buffer.push( match );
+                            }
+                            #ifdef DEBUG
+                                cout<<se.id<<" has match(s) "<<match.first+1<<" to "<<match.second<<" | ";
+                                cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
+                            #endif
+                            
+                            se.table.incOpsCounter();
+                        }
+                    }
                 }
+                
             }
         }
     }
@@ -402,7 +475,7 @@ void Simple_Search::run_fwddp_ss(SSE &se, string &seq, interval &begin_reg){
                 se.occurrences.insert(make_pair(i,0)); //at position (i-1) in seq ends a match
                 //cout<<i<<endl;
                 #ifdef DEBUG
-                    cout<<se.id<<" has match "<<pos+1<<" to "<<i<<" | ";
+                    cout<<se.id<<" has match(fwd) "<<pos+1<<" to "<<i<<" | ";
                     cout<<se.pattern<<" "<<seq.substr(pos, i-pos)<<endl;
                 #endif
             }
@@ -623,7 +696,7 @@ void Simple_Search::run_fwddp_h(SSE &se, string &seq, int strand1_begin, int str
         //if it is a complete match, put it to the list of occurrences
         if(k==patt_length && (b==0 || n==0)){
             //at position (i-1) in seq ends a match of 1.strand
-            //at position (j-1) in seq ends a match of 2.strand
+            //at position (j) in seq begins a match of 2.strand
             //se.occurrences.set2(2,i,j);
             se.occurrences.insert(make_pair(i,j));
             //cout<<i-1<<' '<<j-1<<endl;
