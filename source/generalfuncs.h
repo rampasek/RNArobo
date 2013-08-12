@@ -47,6 +47,27 @@ inline bool get_valuable_line(ifstream &fin, string &str){
     return false;
 }
 
+/* 
+inline bool get_valuable_line(ifstream &fin, string &str){
+    char chbuff[512];
+    char* ch;
+    while(fin.getline(chbuff, 512, '\n')){
+        ch=chbuff;
+        while(*ch!='\0' && isspace(*ch)) ++ch;
+        
+        if(*ch == '\0') continue;
+        
+        if(*ch != '#') { //it's not a comment line
+            str = chbuff;
+            return true;
+        }
+    }
+    
+    str = "";
+    return false;
+}
+*/
+
 //normalize the given string = bring to uppercase and replace 'U's by 'T's
 inline void normalize_seq(string &seq){
     transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
@@ -150,11 +171,28 @@ inline void reverse_complement(string::iterator first, string::iterator last) {
 // filter out all whitespaces from the given string @s
 inline void filter_whitespaces(string &s){
     string tmp;
+    unsigned int last = 0;
+    unsigned int i = 0;
+    unsigned int size = s.size();
+    tmp.reserve(size);
+    
+    while(i<size){
+        while(i<size && !isspace(s[i])) ++i;
+        if(i==size) return;
+        tmp += s.substr(last, i-last);
+        while(i<size && isspace(s[i])) ++i;
+        last = i;
+    }
+    s=tmp;
+    
+    /* slow version
+    string tmp;
     tmp.reserve(s.size());
     for(int i=0;i<s.size();++i){
         if(!isspace(s[i])) tmp+=s[i];
     }
     s=tmp;
+    */
 }
 
 }

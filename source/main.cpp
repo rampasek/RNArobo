@@ -278,7 +278,7 @@ int main(int argc, char* argv[]){
         while( sin>>line ) sq_details+=" "+line;
 
         while('A'<=dbin.peek() && dbin.peek()<='z') {
-            get_valuable_line(dbin,line);
+            getline(dbin,line);
             normalize_seq(line);
             sq+=line;
         }
@@ -291,7 +291,7 @@ int main(int argc, char* argv[]){
             
         int max_motif_length = ssearch.desc->get_max_motif_length();
         //to how long pieces we will chop up the sequence
-        int max_seq_length = max(1000, 10*max_motif_length);
+        int max_seq_length = max(5000, 20*max_motif_length);
         
         //to store beginnings of found matches (in both strands) - for filtering repeating matches
         set <pair <unsigned int, unsigned int> > found_matches, found_op_matches;
