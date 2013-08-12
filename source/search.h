@@ -36,11 +36,13 @@ class Simple_Search{
         list<interval> get_next_match(SSE &se);
         void get_naive_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
         void get_simple_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
-        void run_fwddp_ss(SSE &se, string &seq, interval &begin_reg);
-        void trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
-        void run_fwddp_h(SSE &se, string &seq, int strand1_begin, int strand2_end);
+        void get_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
+        void run_fwddp_ss(SSE &se, string &seq, interval &begin_reg);                       //DEPRECATED
+        void trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, interval &end_reg);  //DEPRECATED
+        void get_h_matches(SSE &se, string &seq, list<interval_pair> &domain);
+        void run_fwddp_h(SSE &se, string &seq, int strand1_begin, int strand2_end);         //DEPRECATED
         void trace_bckdp_h(SSE &se, string &seq, int lower_bound1, int upper_bound1, int end,
-                              int begin, int lower_bound2, int upper_bound2);
+                           int begin, int lower_bound2, int upper_bound2);                  //DEPRECATED
         void set_grid(intervals &grid, SSE &se, list<interval> &match);
         void reset_grid(intervals &grid, SSE &se);
 

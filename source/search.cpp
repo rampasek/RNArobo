@@ -7,7 +7,6 @@
  *
  */
 
-//#define NDEBUG
 #include <assert.h>
 #include <iostream>
 #include <sstream>
@@ -113,25 +112,28 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
     /// find the element occurrences in the domain
     // DP for helices
     if(se.is_helix){
+        get_h_matches(se, seq, domain);
+        
+        /* //for run with fwd/bckwd DP approach
         int min_dist = se.strand_dist.first + 2*se.size_range.first -1;
         int max_dist = se.strand_dist.second + 2*se.size_range.second;
-
-        for(int i=domain.front().BEGIN.first; i<domain.front().BEGIN.second; i++){
-            for(int j=max(domain.back().END.first, i+min_dist); j<min(domain.back().END.second, i+max_dist); j++){
-                run_fwddp_h(se, seq, i, j);
-                //cout<<"flooding "<<i<<' '<<j<<endl;
+        
+        for(int s1_b=domain.front().BEGIN.first; s1_b<domain.front().BEGIN.second; s1_b++){
+            for(int s2_e=max(domain.back().END.first, s1_b+min_dist); s2_e<min(domain.back().END.second, s1_b+max_dist); s2_e++){
+                run_fwddp_h(se, seq, s1_b, s2_e);
+                //cout<<"flooding "<<s1_b<<' '<<s2_e<<endl;
             }
         }
 
-        for(int i=domain.front().END.first; i<domain.front().END.second; i++){
-            for( int j=max(i+se.strand_dist.first+1, domain.back().BEGIN.first);
-                 j<min(domain.back().BEGIN.second, i+se.strand_dist.second+2); j++ )
+        for(int s1_e=domain.front().END.first; s1_e<domain.front().END.second; s1_e++){
+            for( int s2_b=max(s1_e+se.strand_dist.first+1, domain.back().BEGIN.first);
+                s2_b<min(domain.back().BEGIN.second, s1_e+se.strand_dist.second+2); s2_b++ )
             {
-                //printf("tracing <%d, %d) %d; %d <%d, %d)  -> %d\n", domain.front().BEGIN.first, domain.front().BEGIN.second, i, j, domain.back().END.first, domain.back().END.second,se.occurrences.get(2,i+1,j+1));
-                trace_bckdp_h(se, seq, domain.front().BEGIN.first, domain.front().BEGIN.second, i,
-                              j, domain.back().END.first, domain.back().END.second);
+                //printf("tracing <%d, %d) %d; %d <%d, %d)  -> %d\n", domain.front().BEGIN.first, domain.front().BEGIN.second, s1_e, s2_b, domain.back().END.first, domain.back().END.second,se.occurrences.get(2,s1_e+1,s2_b+1));
+                trace_bckdp_h(se, seq, domain.front().BEGIN.first, domain.front().BEGIN.second, s1_e,
+                              s2_b, domain.back().END.first, domain.back().END.second);
             }
-        }
+        }*/
         
     // for single strand elements
     } else {
@@ -148,9 +150,13 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
 
         // general single strand element DP
         } else {
+            get_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
+            
+            /* //for run with fwd/bckwd DP approach
             run_fwddp_ss(se, seq, domain.front().BEGIN);
             //printf("tracing <%d, %d) - <%d, %d)\n", domain.front().BEGIN.first, domain.front().BEGIN.second, domain.front().END.first, domain.front().END.second);
             trace_bckdp_ss(se, seq, domain.front().BEGIN, domain.front().END);
+            */
         }
     }
 
@@ -160,7 +166,10 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
         set_grid(grid, se, match);
         if( se.id == orderer->searchOrder.back()){
             #ifdef DEBUG
-                cout<<"SOLUTION!!!"<<endl;
+                cout<<"SOLUTION!!! ";
+                for(int i=0;i<desc->motif.size();i++){
+                    cout<<desc->motif[i]<<"("<<grid[i].first<<"-"<<grid[i].second<<") ";
+                }cout<<endl;
             #endif
             
             solutions.push_back(grid);
@@ -288,7 +297,7 @@ list<interval_pair> Simple_Search::get_domain(intervals &grid, string &seq, SSE 
 }
 
 /* Run naive pattern search for @se.pattern in @seq. All occurrences must begin
- * at index within @begin_reg.first...@begin_reg.second and end within @end_reg.
+ * at index within <@begin_reg.first, @begin_reg.second) and end within @end_reg.
  * !!!Works for single strand elements with *NO inner wild cards or insertions*!!!
  */
 void Simple_Search::get_naive_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
@@ -354,7 +363,7 @@ void Simple_Search::get_naive_ss_matches(SSE &se, string &seq, interval &begin_r
 }
 
 /* Run simple DP pattern search for @se.pattern in @seq. All occurrences must begin
- * at index within @begin_reg.first...@begin_reg.second and end within @end_reg.
+ * at index within <@begin_reg.first, @begin_reg.second) and end within @end_reg.
  * !!!Works for single strand elements with *NO insertions*!!!
  */
 void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
@@ -431,7 +440,107 @@ void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_
     }
 }
 
-/* Do flood (breadth first search) from @seq[@index_in_seq]. In other words do forward
+/* Run general DP pattern search for @se.pattern in @seq. All occurrences must begin
+ * at index within <@begin_reg.first, @begin_reg.second) and end within @end_reg. Push all 
+ * found matches to se.match_buffer.
+ */
+void Simple_Search::get_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
+    int patt_length=se.pattern.size();
+    int seq_length=seq.size();
+    interval match;
+    
+    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    for(int pos=begin_reg.first; pos<begin_reg.second; pos++){
+        tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+        assert(vertex_queue.empty());
+        se.table.clear();
+        
+        //seq is indexed from 0 to seq.size()-1, but we need it now from 1..seq.size()
+        tmp_vertex[0] = pos;
+        tmp_vertex[4] = 1;
+        vertex_queue.push(tmp_vertex);
+        
+        //start flood
+        while(!vertex_queue.empty()){
+            //ignore already visited vertices
+            while( !vertex_queue.empty() && se.table.get(vertex_queue.top())==true ) vertex_queue.pop();
+            if( vertex_queue.empty() ) break;
+            
+            //get next unvisited vertex to be processed
+            tmp_vertex=vertex_queue.top();
+            vertex_queue.pop();
+            
+            /// process the vertex
+            //mark the vertex as reachable
+            se.table.set(tmp_vertex);
+            
+            //read coordinates of the vertex
+            int i,j,m,n,b, x;
+            i = tmp_vertex[0];
+            j = tmp_vertex[1];
+            m = tmp_vertex[2];
+            n = tmp_vertex[3];
+            b = tmp_vertex[4];
+            
+            //if it is a complete match, put it to the list of occurrences
+            if(j==patt_length && (b==0 || n==0)){
+                match.first = pos;
+                match.second = i;
+                if(end_reg.first < match.second && match.second <= end_reg.second)                {
+                    //se.occurrences.insert(make_pair(i,0)); //at position (i-1) in seq ends a match
+                    //cout<<i<<endl;
+                    se.match_buffer.push( match );
+                    
+                    #ifdef DEBUG
+                        cout<<se.id<<" has match(fwd) "<<match.first+1<<" to "<<match.second<<" | ";
+                        cout<<se.pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
+                    #endif
+                }
+            } else {
+                //align next symbol from pattern to text if possible
+                if(i<seq_length){
+                    //not i+1 and j+1, because seq and se.pattern are indexed from 0
+                    x = 1-(int)(fits(seq[i],se.pattern[j]));
+                    //cout<<"porovnavam "<<seq[i]<<" k "<<se.pattern[j]<<endl;
+                    
+                    if(m+x<=se.num_mismatches){
+                        tmp_vertex[0] = i+1;
+                        tmp_vertex[1] = j+1;
+                        tmp_vertex[2] = m+x;
+                        tmp_vertex[3] = n;
+                        tmp_vertex[4] = 0;
+                        vertex_queue.push(tmp_vertex);
+                    }
+                }
+                
+                //skip a wild card if possible
+                if(se.pattern[j]=='*'){
+                    tmp_vertex[0] = i;
+                    tmp_vertex[1] = j+1;
+                    tmp_vertex[2] = m;
+                    tmp_vertex[3] = n;
+                    tmp_vertex[4] = b;
+                    vertex_queue.push(tmp_vertex);
+                }
+                
+                //do insertion if possible
+                if(n<se.num_insertions && b==0 && i<seq_length && fits(seq[i],se.allowed_insertion)){
+                    tmp_vertex[0] = i+1;
+                    tmp_vertex[1] = j;
+                    tmp_vertex[2] = m;
+                    tmp_vertex[3] = n+1;
+                    tmp_vertex[4] = 1;
+                    vertex_queue.push(tmp_vertex);
+                }
+            }
+            
+        }
+    }
+}
+
+
+/* DEPRECATED => no longer used in the battery of pattern matching algorithms
+ * Do flood (breadth first search) from @seq[@index_in_seq]. In other words do forward
  * dynamic programming to compute ends of all possible matches starting at @index_in_seq.
  */
 void Simple_Search::run_fwddp_ss(SSE &se, string &seq, interval &begin_reg){
@@ -520,9 +629,10 @@ void Simple_Search::run_fwddp_ss(SSE &se, string &seq, interval &begin_reg){
 }
 
 
-/*  Push into @se.match_buffer all matches of the single strand @se in the sequence @seq such that
- *  seq[S..@end] is a correct match and S is in <@lower_bound, @upper_bound).
- *  In other words do traceback of dynamic programming.
+/* DEPRECATED => no longer used in the battery of pattern matching algorithms 
+ * Push into @se.match_buffer all matches of the single strand @se in the sequence @seq such that
+ * seq[S..@end] is a correct match and S is in <@lower_bound, @upper_bound).
+ * In other words do traceback of dynamic programming.
  */
 void Simple_Search::trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
     set<int> beginnings;
@@ -651,11 +761,148 @@ void Simple_Search::trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, in
     }
 }
 
-/* Do flood (breadth first search) from @seq[@strand1_begin], @seq[@strand2_end].
-    In other words do forward dynamic programming to compute ends of all possible 1.strand matches
-    starting at @strand1_begin and beginnings of all possible 2.strand matches ending
-    at @strand2_end such that they form a correct helix according to @se.
-*/
+/* Run general DP pattern search for helical element @se in @seq. All occurrences must be within the
+ * corrseponding search domain @domain. Push all matches to se.match_buffer.
+ */
+void Simple_Search::get_h_matches(SSE &se, string &seq, list<interval_pair> &domain){
+    int patt_length=se.pattern.size();
+    int seq_length=seq.size();
+    int min_dist = se.strand_dist.first + 2*se.size_range.first -1;
+    int max_dist = se.strand_dist.second + 2*se.size_range.second;
+    
+    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    for(int s1_b=domain.front().BEGIN.first; s1_b<domain.front().BEGIN.second; s1_b++)
+    {
+    for(int s2_e=max(domain.back().END.first, s1_b+min_dist); s2_e<min(domain.back().END.second, s1_b+max_dist); s2_e++)
+    {
+        tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+        assert(vertex_queue.empty());
+        se.table.clear();
+    
+        //seq is indexed from 0 to seq.size()-1, but we need it now from 1..seq.size()
+        tmp_vertex[0] = s1_b;
+        tmp_vertex[1] = s2_e+2;
+        tmp_vertex[6] = 1;
+        vertex_queue.push(tmp_vertex);
+        
+        //start flood
+        while(!vertex_queue.empty()){
+            //ignore already visited vertices
+            while( !vertex_queue.empty() && se.table.get(vertex_queue.top())==true ) vertex_queue.pop();
+            if( vertex_queue.empty() ) break;
+            
+            //get next unvisited vertex to be processed
+            tmp_vertex=vertex_queue.top();
+            vertex_queue.pop();
+            
+            /// process the vertex
+            //mark the vertex as reachable
+            se.table.set(tmp_vertex);
+            
+            //read coordinates of the vertex
+            int i,j,k,m,p,n,b, x,y;
+            i = tmp_vertex[0];
+            j = tmp_vertex[1];
+            k = tmp_vertex[2];
+            m = tmp_vertex[3];
+            p = tmp_vertex[4];
+            n = tmp_vertex[5];
+            b = tmp_vertex[6];
+            
+            //if it is a complete match, put it to the list of occurrences
+            if(k==patt_length && (b==0 || n==0)){
+                //at position i in seq ends a match of 1.strand
+                //at position j-1 in seq begins a match of 2.strand
+                //cout<<i<<' '<<j-1<<endl;
+                int s1_e = i;
+                int s1_e_left = domain.front().END.first;
+                int s1_e_right = domain.front().END.second;
+                int s2_b = j-1;
+                int s2_b_left = max(s1_e+se.strand_dist.first, domain.back().BEGIN.first);
+                int s2_b_right = min(domain.back().BEGIN.second, s1_e+se.strand_dist.second+1);
+                
+                //cout<<s1_e_left<<" "<<s1_e_right<<" | "<<s2_b_left<<" "<<s2_b_right<<endl;
+                
+                if( s1_e_left < s1_e && s1_e <= s1_e_right &&
+                    s2_b_left <= s2_b && s2_b < s2_b_right)
+                {
+                    se.match_buffer.push( make_pair(s1_b, s1_e) );
+                    se.match_buffer.push( make_pair(s2_b, s2_e+1) );
+                    #ifdef DEBUG
+                        cout<<se.id<<" has match "<<s1_b+1<<" to "<<s1_e<<"; "<<s2_b+1<<" to "<<s2_e+1<<" | ";
+                        cout<<" "<<seq.substr(s1_b, s1_e-s1_b);
+                        cout<<" - "<<seq.substr(s2_b, s2_e+1-s2_b)<<"     "<<seq<<endl;
+                    #endif
+                }
+                
+            } else {
+                //align next symbol from pattern to text if possible
+                if(i<seq_length && j-1>0 && fits(seq[j-2],se.complement[k])){
+                    //not i+1 nor j-1 nor k+1, because seq and se.pattern are indexed from 0
+                    x = 1-(int)(fits(seq[i],se.pattern[k]));
+                    y = 1-(int)(is_complemntary(seq[j-2],seq[i],se.transf_matrix));
+                    
+                    if(m+x<=se.num_mismatches && p+y<=se.num_mispairings){
+                        tmp_vertex[0] = i+1;
+                        tmp_vertex[1] = j-1;
+                        tmp_vertex[2] = k+1;
+                        tmp_vertex[3] = m+x;
+                        tmp_vertex[4] = p+y;
+                        tmp_vertex[5] = n;
+                        tmp_vertex[6] = 0;
+                        vertex_queue.push(tmp_vertex);
+                    }
+                }
+                
+                //skip a wild card if possible
+                if(se.pattern[k]=='*'){
+                    tmp_vertex[0] = i;
+                    tmp_vertex[1] = j;
+                    tmp_vertex[2] = k+1;
+                    tmp_vertex[3] = m;
+                    tmp_vertex[4] = p;
+                    tmp_vertex[5] = n;
+                    tmp_vertex[6] = b;
+                    vertex_queue.push(tmp_vertex);
+                }
+                
+                //do insertion to 1.strand if possible
+                if(n<se.num_insertions && b==0 && i<seq_length && fits(seq[i],se.allowed_insertion)){
+                    tmp_vertex[0] = i+1;
+                    tmp_vertex[1] = j;
+                    tmp_vertex[2] = k;
+                    tmp_vertex[3] = m;
+                    tmp_vertex[4] = p;
+                    tmp_vertex[5] = n+1;
+                    tmp_vertex[6] = 1;
+                    vertex_queue.push(tmp_vertex);
+                }
+                
+                //do insertion to 2.strand if possible
+                if(n<se.num_insertions && b==0 && j-1>0 && fits(seq[j-2],se.allowed_insertion)){
+                    tmp_vertex[0] = i;
+                    tmp_vertex[1] = j-1;
+                    tmp_vertex[2] = k;
+                    tmp_vertex[3] = m;
+                    tmp_vertex[4] = p;
+                    tmp_vertex[5] = n+1;
+                    tmp_vertex[6] = 1;
+                    vertex_queue.push(tmp_vertex);
+                }
+            }
+            
+        }
+    }
+    }
+}
+
+
+/* DEPRECATED => no longer used in the battery of pattern matching algorithms 
+ * Do flood (breadth first search) from @seq[@strand1_begin], @seq[@strand2_end].
+ * In other words do forward dynamic programming to compute ends of all possible 1.strand matches
+ * starting at @strand1_begin and beginnings of all possible 2.strand matches ending
+ * at @strand2_end such that they form a correct helix according to @se.
+ */
 void Simple_Search::run_fwddp_h(SSE &se, string &seq, int strand1_begin, int strand2_end){
     //vector<int> tmp_vertex(7);
     tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
@@ -758,11 +1005,11 @@ void Simple_Search::run_fwddp_h(SSE &se, string &seq, int strand1_begin, int str
     }
 }
 
-
-/* Push into @se.match_buffer all matches of the helix @se in the sequence @seq such that
-    seq[S..@end], seq[@begin..E] is a correct match and S is in <@lower_bound1, @upper_bound1)
-    and E is in <@lower_bound2, @upper_bound2). In other words do traceback of dynamic programming.
-*/
+/* DEPRECATED => no longer used in the battery of pattern matching algorithms
+ * Push into @se.match_buffer all matches of the helix @se in the sequence @seq such that
+ * seq[S..@end], seq[@begin..E] is a correct match and S is in <@lower_bound1, @upper_bound1)
+ * and E is in <@lower_bound2, @upper_bound2). In other words do traceback of dynamic programming.
+ */
 void Simple_Search::trace_bckdp_h(SSE &se, string &seq, int lower_bound1, int upper_bound1, int end,
                                   int begin, int lower_bound2, int upper_bound2){
 
@@ -944,12 +1191,12 @@ list<interval> Simple_Search::get_next_match(SSE &se){
     #ifdef DEBUG
         cout<<"match: "<<se.id<<": ";
         cout<<new_match.front().first<<" to "<<new_match.front().second<<": ";
-        if(new_match.front().first != -1);
+        if(new_match.front().first != -1)
             //cout<<seq.substr(new_match.front().first,new_match.front().second-new_match.front().first)<<"   ";
         if(new_match.size()==2){
             cout<<new_match.back().first<<" to "<<new_match.back().second<<": ";
-            if(new_match.front().first != -1);
-               // cout<<seq.substr(new_match.back().first,new_match.back().second-new_match.back().first)<<"   ";
+            if(new_match.front().first != -1)
+                //cout<<seq.substr(new_match.back().first,new_match.back().second-new_match.back().first)<<"   ";
         }
     #endif
     return new_match;
