@@ -15,6 +15,10 @@
 #include <cmath>
 #include <stack>
 #include <iostream>
+#include <stdint.h>
+#include <emmintrin.h>
+#include <cstring>
+#include <cassert>
 
 #include "descriptor.h"
 #include "types.h"
@@ -69,6 +73,18 @@ Descriptor::Descriptor(ifstream &fin){
 
     // compute auxiliary stats, e.g. sizes of SSEs, distances between strands of helices
     compute_auxiliary_stats();
+
+    //compile patterns that can be searched for by BNDM
+    for(int i=1;i<sses.size();i++){
+        if(sses[i].is_helix) continue;
+
+        // single strand element with fix-sized core and with NO other wild cards, NO mismatches, nor insertions
+        bool fixed_core = (sses[i].size_range.first==(sses[i].size_range.second-sses[i].num_wc_padding.first-sses[i].num_wc_padding.second));
+        if(fixed_core && sses[i].num_mismatches==0 && sses[i].num_insertions==0){
+            compile_pattern(sses[i]);
+        }
+    }
+
     
     // compute information content of all SSEs
     compute_inf_contents();
@@ -375,6 +391,67 @@ void Descriptor::compute_auxiliary_stats(){
         cout<<endl;
     }
     */
+}
+
+static void setbit(void *v, int p) {
+    ((uint32_t*)v)[p >> 5] |= 1 << (p & 31);
+}
+
+//compile pattern for BNDM
+void Descriptor::compile_pattern(SSE &se){
+    int patt_length=se.stripped_pattern.size();
+    assert(patt_length <= 128);
+    
+    int i, j;
+    __m128i zero = {};
+    
+    for(i=0;i<256;++i) se.used[i] = 0;
+
+    //IUPAC sets including:        A    ,     C    ,     G    ,     T
+    const char iupac[4][8] = { "NWMRDHV", "NSMYBHV", "NSKRBDV", "NWKYBDH" };
+    const char ambig_codes[12] = "NWSMKRYBDHV";
+    
+    ///PREPROCESSING
+    for(i = 0; i < patt_length; ++i) {
+        char patarr[2] = "_";
+        patarr[0] = se.stripped_pattern[i];
+        //if it's a IUPAC code for multiple nucleotides - "classes in pattern"
+        if(strstr(ambig_codes, patarr)!=NULL){
+            //allow this position to match all the nucleotides it codes for
+            //(by adding this position to their mask of matching positions)
+            for(int ind=0; ind<4; ++ind){
+                unsigned int nuc = "ACGT"[ind];
+                //if iupac code se.stripped_pattern[i] includes nucelotide nuc
+                if(strstr(iupac[ind], patarr)!=NULL){
+                    if (!se.used[nuc]){
+                        se.used[nuc] = 1;
+                        se.maskv[nuc] = zero;
+                    }
+                    setbit(&se.maskv[nuc], patt_length - 1 - i);
+                }
+            }
+        } else {
+            j = se.stripped_pattern[i];
+            if (!se.used[j]){
+                se.used[j] = 1;
+                se.maskv[j] = zero;
+            }
+            setbit(&se.maskv[j], patt_length - 1 - i);
+        }
+    }
+    
+    //"classes in text" - when searched sequence contains ambiguous IUPAC codes
+    for(i=0; i<11; ++i){
+        se.used[(unsigned int)ambig_codes[i]] = 1;
+        se.maskv[(unsigned int)ambig_codes[i]] = zero;
+    }
+    //for each ambiguous letter: set its mask to union of positions that match the coded nucelotides
+    for(i=0; i<4; ++i){
+        unsigned int nuc = "ACGT"[i];
+        for (j=0; j<7; ++j){
+            se.maskv[(unsigned int)iupac[i][j]] |= se.maskv[nuc];
+        }
+    }
 }
 
 //compute information content of all elements

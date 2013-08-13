@@ -17,6 +17,8 @@
 #include <stack>
 #include <queue>
 #include <set>
+#include <stdint.h>
+#include <emmintrin.h>
 
 #include "search.h"
 #include "generalfuncs.h"
@@ -139,11 +141,15 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
     } else {
         //true if the element pattern has fix-sized core, i.e. wild cards are only as prefix/suffix
         bool fixed_core = (se.size_range.first==(se.size_range.second-se.num_wc_padding.first-se.num_wc_padding.second));
-        
-        // single strand element with fix-sized core and with NO other wild cards nor insertions
-        if(fixed_core && se.num_insertions==0){
-            get_naive_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
 
+        // single strand element with fix-sized core and with NO other wild cards, NO mismatches, nor insertions
+        if(fixed_core && se.num_mismatches==0 && se.num_insertions==0){
+            get_bndm_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
+
+        // single strand element with fix-sized core and with NO other wild cards nor insertions
+        } else if(fixed_core && se.num_insertions==0){
+            get_naive_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
+            
         // single strand element with NO insertions
         } else if(se.num_insertions==0){
             get_simple_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
@@ -294,6 +300,99 @@ list<interval_pair> Simple_Search::get_domain(intervals &grid, string &seq, SSE 
     }
 
     return domain;
+}
+
+/* Run BNDM pattern search for @se.pattern in @seq. All occurrences must begin
+ * at index within <@begin_reg.first, @begin_reg.second) and end within @end_reg.
+ * !!!Works for single strand elements with *NO inner wild cards, NO mismatches, NO insertions*!!!
+ */
+void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
+    int patt_length=se.stripped_pattern.size();
+    int seq_length=seq.size();
+    interval match;
+    set<interval> found_matches;
+    
+    assert(patt_length <= 128);
+    int i, j;
+    __m128i zero = {}, carry64 = (__v2di){0,1};
+
+    ///SEARCH
+    if(patt_length==0){
+        for(i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; ++i){
+            //add all possible matches of leading/trailing wild cards
+            for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
+                for(int suffix_l=0; suffix_l<=se.num_wc_padding.second; ++suffix_l){
+                    match.first = i - prefix_l;
+                    match.second = i + suffix_l;
+                    //check if the match is inside the search domain
+                    if(end_reg.first < match.second && match.second <= end_reg.second
+                        && match.first >= begin_reg.first && match.first < begin_reg.second)
+                    {
+                        if(found_matches.count(match)==0){
+                            found_matches.insert( match );
+                            se.match_buffer.push( match );
+                        }
+                        #ifdef DEBUG
+                            cout<<se.id<<" has match(bndm) "<<match.first+1<<" to "<<match.second<<" | ";
+                            cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
+                        #endif
+                        
+                        se.table.incOpsCounter();
+                    }
+                }
+            }
+        }
+    } else {
+        for(i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; i += j){
+            if(patt_length - 1 + i >= seq_length) break;
+
+            j = patt_length;
+            if(!se.used[(unsigned int)seq[patt_length - 1 + i]]) continue;
+            __m128i mask = se.maskv[(unsigned int)seq[patt_length - 1 + i]];
+            while(0xFFFF != _mm_movemask_epi8(_mm_cmpeq_epi8(zero, mask))){
+                --j;
+
+                if(!j){ //we have a complete match
+                    int start=i;
+                    int end=i+patt_length;
+                    //add also all possible matches of leading/trailing wild cards
+                    for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
+                        for(int suffix_l=0; suffix_l<=se.num_wc_padding.second; ++suffix_l){
+                            match.first = start - prefix_l;
+                            match.second = end + suffix_l;
+                            //check if the match is inside the search domain
+                            if(end_reg.first < match.second && match.second <= end_reg.second
+                                && match.first >= begin_reg.first && match.first < begin_reg.second)
+                            {
+                                if(found_matches.count(match)==0){
+                                    found_matches.insert( match );
+                                    se.match_buffer.push( match );
+                                }
+                                #ifdef DEBUG
+                                    cout<<se.id<<" has match(bndm) "<<match.first+1<<" to "<<match.second<<" | ";
+                                    cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
+                                #endif
+
+                                se.table.incOpsCounter();
+                            }
+                        }
+                    }
+
+                    j = 1;
+                    break;
+                }
+
+                if(!se.used[(unsigned int)seq[i + j - 1]]) break;
+
+                int hibits = _mm_movemask_epi8(mask);
+                mask = _mm_slli_epi64(mask, 1);
+                if(hibits & 0x80) mask = _mm_or_si128(mask, carry64);
+                mask = _mm_and_si128(mask, se.maskv[(unsigned int)seq[i + j - 1]]);
+
+                se.table.incOpsCounter();
+            }
+        }
+    }
 }
 
 /* Run naive pattern search for @se.pattern in @seq. All occurrences must begin

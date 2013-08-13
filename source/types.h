@@ -14,6 +14,8 @@
 #include <queue>
 #include <map>
 #include <set>
+#include <stdint.h>
+#include <emmintrin.h>
 #include "matrix.h"
 
 using namespace std;
@@ -48,6 +50,9 @@ struct SSE{
     queue<interval> match_buffer;   // buffer for unprocessed matches (in a domain)
     //map< pair<int,int>, set< pair<int,int> > > h_beginnings_cache; // cache of traceback if helical element
     //map< int, set<int> > ss_beginnings_cache;   // cache of traceback if single strand element
+
+    __m128i maskv[256];         //precomputed "pattern" table for BNDM
+    uint8_t used[256];
 };
 
 // a structure to keep empirical data gathered for a K-elements reorder
