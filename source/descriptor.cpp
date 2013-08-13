@@ -80,7 +80,7 @@ Descriptor::Descriptor(ifstream &fin){
 
         // single strand element with fix-sized core and with NO other wild cards, NO mismatches, nor insertions
         bool fixed_core = (sses[i].size_range.first==(sses[i].size_range.second-sses[i].num_wc_padding.first-sses[i].num_wc_padding.second));
-        if(fixed_core && sses[i].num_mismatches==0 && sses[i].num_insertions==0){
+        if(fixed_core && sses[i].num_mismatches==0 && sses[i].num_insertions==0 && sses[i].stripped_pattern.size()<=128){
             compile_pattern(sses[i]);
         }
     }
@@ -393,7 +393,7 @@ void Descriptor::compute_auxiliary_stats(){
     */
 }
 
-static void setbit(void *v, int p) {
+inline void setbit(void *v, int p) {
     ((uint32_t*)v)[p >> 5] |= 1 << (p & 31);
 }
 
