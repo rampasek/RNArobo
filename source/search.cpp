@@ -362,17 +362,43 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
         __m128i tmp, ones, zero = {};
         ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
         
-        for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; i += last){
+        for(int i = begin_reg.first; i < begin_reg.second+se.num_wc_padding.first; i += last){
             if(patt_length - 1 + i >= seq_length) break;
 
-            j = patt_length;
-            last = patt_length;
+            j = patt_length - 1;
+            last = max(1, patt_length - 1);
             
-            for(int x = 1; x <= se.num_mismatches; ++x) R[x] = ones;
-            R[0] = se.maskv[(int)seq[patt_length - 1 + i]];
-            newR = R[0];
-            
+            R[0] = se.maskv[(int)seq[i + j]];
+            for(int x = 1; x <= se.num_mismatches; ++x) {R[x] = ones; }
+            newR = ones;
             while(0xFFFF != _mm_movemask_epi8(_mm_cmpeq_epi8(zero, newR))){
+                oldR = R[0];
+                newR = R[0];
+                if (j!=0) {
+                    bsl_m128(&newR);
+                    newR = _mm_and_si128(newR, se.maskv[(int)seq[i + j - 1]]);
+                    R[0] = newR;
+                }
+                //run "dynamic programming" for number of mismatches
+                for(int x = 1; x <= se.num_mismatches; ++x){
+                    //align text to pattern at this "level"
+                    tmp = R[x];
+                    if (j!=0) {
+                        bsl_m128(&tmp);
+                        tmp = _mm_and_si128(tmp, se.maskv[(int)seq[i + j - 1]]);
+                     }
+                    //shift left previous "level" - prepare for mismatch
+                    bsl_m128(&oldR);
+                    
+                    //by taking OR allow for mismatch and alignment at the same time
+                    newR = _mm_or_si128(tmp, oldR);
+                    
+                    oldR = R[x];
+                    R[x] = newR;
+                    
+                    se.table.incOpsCounter();
+                }
+                
                 --j;
                 
                 //if we have a suffix in the text that is a prefix of the pattern
@@ -406,29 +432,6 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                         }
                         break;
                     }
-                }
-
-                oldR = R[0];
-                newR = R[0];
-                bsl_m128(&newR);
-                newR = _mm_and_si128(newR, se.maskv[(int)seq[i + j - 1]]);
-                R[0] = newR;
-                //run "dynamic programming" for number of mismatches
-                for(int x = 1; x <= se.num_mismatches; ++x){
-                    //align text to pattern at this "level"
-                    tmp = R[x];
-                    bsl_m128(&tmp);
-                    tmp = _mm_and_si128(tmp, se.maskv[(int)seq[i + j - 1]]);
-                    //shift left previous "level" - prepare for mismatch
-                    bsl_m128(&oldR);
-
-                    //by taking OR allow for mismatch and alignment at the same time
-                    newR = _mm_or_si128(tmp, oldR);
-
-                    oldR = R[x];
-                    R[x] = newR;
-
-                    se.table.incOpsCounter();
                 }
 
                 se.table.incOpsCounter();
