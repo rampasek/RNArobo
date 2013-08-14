@@ -1,5 +1,5 @@
 CC      = g++
-CFLAGS  = -O3 -Wall -Wno-sign-compare #-Wextra
+CFLAGS  = -O3 -Wall -Wno-sign-compare -msse -msse2 #-Wextra
 LD      = $(CC)
 LFLAGS  = -Wall
 

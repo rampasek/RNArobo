@@ -78,9 +78,9 @@ Descriptor::Descriptor(ifstream &fin){
     for(int i=1;i<sses.size();i++){
         if(sses[i].is_helix) continue;
 
-        // single strand element with fix-sized core and with NO other wild cards, NO mismatches, nor insertions
+        // single strand element with fix-sized core and with NO other wild cards, nor insertions
         bool fixed_core = (sses[i].size_range.first==(sses[i].size_range.second-sses[i].num_wc_padding.first-sses[i].num_wc_padding.second));
-        if(fixed_core && sses[i].num_mismatches==0 && sses[i].num_insertions==0 && sses[i].stripped_pattern.size()<=128){
+        if(fixed_core && sses[i].num_insertions==0 && sses[i].stripped_pattern.size()<=128){
             compile_pattern(sses[i]);
         }
     }
@@ -401,28 +401,29 @@ inline void setbit(void *v, int p) {
 void Descriptor::compile_pattern(SSE &se){
     int patt_length=se.stripped_pattern.size();
     assert(patt_length <= 128);
-    
-    int i, j;
+    int j;
     __m128i zero = {};
-    
-    for(i=0;i<256;++i) se.used[i] = 0;
+    //_mm_storeu_si128(&se.maskv[i], maskv[i]);
+    for(int i=0; i<256; ++i) se.used[i] = 0;
 
-    //IUPAC sets including:        A    ,     C    ,     G    ,     T
-    const char iupac[4][8] = { "NWMRDHV", "NSMYBHV", "NSKRBDV", "NWKYBDH" };
-    const char ambig_codes[12] = "NWSMKRYBDHV";
+    //IUPAC codes
+    vector<string> iupac(4);
+    iupac[0] = "NWMRDHV";  //these contain A
+    iupac[1] = "NSMYBHV";  //these contain C
+    iupac[2] = "NSKRBDV";  //these contain G
+    iupac[3] = "NWKYBDH";  //these contain T
+    string ambig_codes = "NWSMKRYBDHV";
     
     ///PREPROCESSING
-    for(i = 0; i < patt_length; ++i) {
-        char patarr[2] = "_";
-        patarr[0] = se.stripped_pattern[i];
+    for(int i = 0; i < patt_length; ++i) {
         //if it's a IUPAC code for multiple nucleotides - "classes in pattern"
-        if(strstr(ambig_codes, patarr)!=NULL){
+        if(ambig_codes.find(se.stripped_pattern[i]) != string::npos){
             //allow this position to match all the nucleotides it codes for
             //(by adding this position to their mask of matching positions)
             for(int ind=0; ind<4; ++ind){
                 unsigned int nuc = "ACGT"[ind];
                 //if iupac code se.stripped_pattern[i] includes nucelotide nuc
-                if(strstr(iupac[ind], patarr)!=NULL){
+                if(iupac[ind].find(se.stripped_pattern[i]) != string::npos){
                     if (!se.used[nuc]){
                         se.used[nuc] = 1;
                         se.maskv[nuc] = zero;
@@ -441,12 +442,12 @@ void Descriptor::compile_pattern(SSE &se){
     }
     
     //"classes in text" - when searched sequence contains ambiguous IUPAC codes
-    for(i=0; i<11; ++i){
+    for(int i=0; i<ambig_codes.size(); ++i){
         se.used[(unsigned int)ambig_codes[i]] = 1;
         se.maskv[(unsigned int)ambig_codes[i]] = zero;
     }
     //for each ambiguous letter: set its mask to union of positions that match the coded nucelotides
-    for(i=0; i<4; ++i){
+    for(int i=0; i<4; ++i){
         unsigned int nuc = "ACGT"[i];
         for (j=0; j<7; ++j){
             se.maskv[(unsigned int)iupac[i][j]] |= se.maskv[nuc];

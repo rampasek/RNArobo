@@ -360,7 +360,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
         __m128i newR, oldR;
         __m128i R[se.num_mismatches + 1];
         __m128i tmp, ones, zero = {};
-        for(int x=0; x<8; ++x) ones = _mm_insert_epi16(ones, 0xFFFF, x); //initialize to all ones
+        ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
         
         for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; i += last){
             if(patt_length - 1 + i >= seq_length) break;
