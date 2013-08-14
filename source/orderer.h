@@ -36,7 +36,7 @@ class Orderer{
         unsigned long long scannedBases;
         
         Orderer(){};
-        Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, unsigned int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams);
+        Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams);
         void setNewSearchOrder(int seqSize);
         
     private:

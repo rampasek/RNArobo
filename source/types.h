@@ -26,6 +26,11 @@ typedef pair<int, int> interval;
 typedef vector< interval > intervals;
 typedef pair<interval, interval> interval_pair;
 
+static void aligned_free(void* p){
+    if (!p) return;
+    free((void*)((uintptr_t)p-((uint16_t*)p)[-1]));
+}
+
 // the structure to represent an Secondary Structure Element
 struct SSE{
     int id;
@@ -51,8 +56,11 @@ struct SSE{
     //map< pair<int,int>, set< pair<int,int> > > h_beginnings_cache; // cache of traceback if helical element
     //map< int, set<int> > ss_beginnings_cache;   // cache of traceback if single strand element
 
-    __m128i maskv[256];         //precomputed "pattern" table for BNDM
+    __m128i *maskv;             //precomputed "pattern" table for BNDM
     uint8_t used[256];
+    
+    SSE() : maskv(NULL) {}
+    ~SSE() {aligned_free(maskv);}
 };
 
 // a structure to keep empirical data gathered for a K-elements reorder

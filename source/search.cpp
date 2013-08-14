@@ -307,7 +307,7 @@ inline bool getbit(void *v, int p) {
     return ( ((uint32_t*)v)[p >> 5] & (1 << (p & 31)) ) != 0;
 }
 
-static __m128i carry64 = (__v2di){0,1};
+static __m128i carry64 __attribute__((aligned(16))) = (__v2di){0,1};
 //bitwise shift left on __m128i
 inline void bsl_m128(__m128i *v){    
     int hibits = _mm_movemask_epi8(*v);

@@ -23,7 +23,7 @@
 
 using namespace std;
 
-Orderer::Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, unsigned int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams){
+Orderer::Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams){
     srand ( time(NULL) );
     
     heuristicParams = hParams;
@@ -130,7 +130,7 @@ void Orderer::prepareKTuples(){
     sort(allTuples.begin(), allTuples.end());
 
     int bestScore = allTuples.back().first;
-    int scoreLimit = (int)(bestScore*.85); //TODO: change to 0.8
+    int scoreLimit = (int)(bestScore*.85); //TODO: evaluate the best cut-off percentage
     
     struct TupleStats tmpStats;
     tmpStats.heuristicScore = 0;

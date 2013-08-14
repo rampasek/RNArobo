@@ -393,6 +393,18 @@ void Descriptor::compute_auxiliary_stats(){
     */
 }
 
+// Alignment must be power of 2
+void* aligned_malloc(size_t size, size_t alignment){
+    //| unused_data0 | start_address | aligned_data | unused_data1 |
+    uintptr_t r = (uintptr_t)malloc(size + --alignment + 2);
+    if (!r) return NULL;
+    //aligned offset
+    uintptr_t o = (r + 2 + alignment) & ~(uintptr_t)alignment;
+    //store address of the actual start of the allocated memory
+    ((uint16_t*)o)[-1] = (uint16_t)(o-r);
+    return (void*)o;
+}
+
 inline void setbit(void *v, int p) {
     ((uint32_t*)v)[p >> 5] |= 1 << (p & 31);
 }
@@ -403,6 +415,8 @@ void Descriptor::compile_pattern(SSE &se){
     assert(patt_length <= 128);
     int j;
     __m128i zero = {};
+    
+    se.maskv = (__m128i*)aligned_malloc(256 * sizeof(__m128i), 16);
     //_mm_storeu_si128(&se.maskv[i], maskv[i]);
     for(int i=0; i<256; ++i) se.used[i] = 0;
 
