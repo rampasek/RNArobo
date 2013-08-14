@@ -142,8 +142,8 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
         //true if the element pattern has fix-sized core, i.e. wild cards are only as prefix/suffix
         bool fixed_core = (se.size_range.first==(se.size_range.second-se.num_wc_padding.first-se.num_wc_padding.second));
 
-        // single strand element with fix-sized core and with NO other wild cards, NO mismatches, nor insertions
-        if(fixed_core && se.num_mismatches==0 && se.num_insertions==0 && se.stripped_pattern.size()<=128){
+        // single strand element with fix-sized core and with NO other wild cards, nor insertions
+        if(fixed_core && se.num_insertions==0 && se.stripped_pattern.size()<=128){
             get_bndm_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
 
         // single strand element with fix-sized core and with NO other wild cards nor insertions
@@ -302,13 +302,22 @@ list<interval_pair> Simple_Search::get_domain(intervals &grid, string &seq, SSE 
     return domain;
 }
 
+//get value of p-th bit
 inline bool getbit(void *v, int p) {
     return ( ((uint32_t*)v)[p >> 5] & (1 << (p & 31)) ) != 0;
 }
 
+static __m128i carry64 = (__v2di){0,1};
+//bitwise shift left on __m128i
+inline void bsl_m128(__m128i *v){    
+    int hibits = _mm_movemask_epi8(*v);
+    *v = _mm_slli_epi64(*v, 1);
+    if(hibits & 0x80) *v = _mm_or_si128(*v, carry64);
+}
+
 /* Run BNDM pattern search for @se.pattern in @seq. All occurrences must begin
  * at index within <@begin_reg.first, @begin_reg.second) and end within @end_reg.
- * !!!Works for single strand elements with *NO inner wild cards, NO mismatches, NO insertions*!!!
+ * !!!Works for single strand elements with *NO inner wild cards and NO insertions*!!!
  */
 void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
     int patt_length=se.stripped_pattern.size();
@@ -317,8 +326,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
     set<interval> found_matches;
     
     assert(patt_length <= 128);
-    __m128i zero = {}, carry64 = (__v2di){0,1};
-
+    
     ///SEARCH
     if(patt_length==0){ //special case for a all-wild-card pattern
         for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; ++i){
@@ -349,19 +357,26 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
         unsigned int mask_offset = patt_length >> 5;
         unsigned int patlen_mask = 1 << ((patt_length-1) & 31);
         int j, last;
+        __m128i newR, oldR;
+        __m128i R[se.num_mismatches + 1];
+        __m128i tmp, ones, zero = {};
+        for(int x=0; x<8; ++x) ones = _mm_insert_epi16(ones, 0xFFFF, x); //initialize to all ones
+        
         for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; i += last){
             if(patt_length - 1 + i >= seq_length) break;
 
             j = patt_length;
             last = patt_length;
             
-            if(!se.used[(unsigned int)seq[patt_length - 1 + i]]) continue;
-            __m128i mask = se.maskv[(unsigned int)seq[patt_length - 1 + i]];
-            while(0xFFFF != _mm_movemask_epi8(_mm_cmpeq_epi8(zero, mask))){
+            for(int x = 1; x <= se.num_mismatches; ++x) R[x] = ones;
+            R[0] = se.maskv[(int)seq[patt_length - 1 + i]];
+            newR = R[0];
+            
+            while(0xFFFF != _mm_movemask_epi8(_mm_cmpeq_epi8(zero, newR))){
                 --j;
                 
                 //if we have a suffix in the text that is a prefix of the pattern
-                if( ((uint32_t*)&mask)[mask_offset] & patlen_mask ){ //getbit(&mask, patt_length-1)
+                if( ((uint32_t*)&newR)[mask_offset] & patlen_mask ){ //getbit(&newR, patt_length-1)
                     if(j>0){
                         last = j;
                     } else { //we have a complete match
@@ -393,12 +408,28 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                     }
                 }
 
-                if(!se.used[(unsigned int)seq[i + j - 1]]) break;
+                oldR = R[0];
+                newR = R[0];
+                bsl_m128(&newR);
+                newR = _mm_and_si128(newR, se.maskv[(int)seq[i + j - 1]]);
+                R[0] = newR;
+                //run "dynamic programming" for number of mismatches
+                for(int x = 1; x <= se.num_mismatches; ++x){
+                    //align text to pattern at this "level"
+                    tmp = R[x];
+                    bsl_m128(&tmp);
+                    tmp = _mm_and_si128(tmp, se.maskv[(int)seq[i + j - 1]]);
+                    //shift left previous "level" - prepare for mismatch
+                    bsl_m128(&oldR);
 
-                int hibits = _mm_movemask_epi8(mask);
-                mask = _mm_slli_epi64(mask, 1);
-                if(hibits & 0x80) mask = _mm_or_si128(mask, carry64);
-                mask = _mm_and_si128(mask, se.maskv[(unsigned int)seq[i + j - 1]]);
+                    //by taking OR allow for mismatch and alignment at the same time
+                    newR = _mm_or_si128(tmp, oldR);
+
+                    oldR = R[x];
+                    R[x] = newR;
+
+                    se.table.incOpsCounter();
+                }
 
                 se.table.incOpsCounter();
             }
