@@ -278,7 +278,7 @@ int main(int argc, char* argv[]){
     long long reported_matches = 0;
     
     long long evalBases = 0;
-    int evalWindows = 0;
+    unsigned int evalWindows = 0;
     double opsPerBase = -1;
     bool doSearch = true;
     
@@ -305,7 +305,8 @@ int main(int argc, char* argv[]){
             
         int max_motif_length = ssearch.desc->get_max_motif_length();
         //to how long pieces we will chop up the sequence
-        int max_seq_length = max(5000, 20*max_motif_length);
+        int max_seq_length = max(2000, 15*max_motif_length);
+        if(ssearch.orderer->samplingSearchDone) max_seq_length = max(10000, 50*max_motif_length);
         
         //to store beginnings of found matches (in both strands) - for filtering repeating matches
         set <pair <unsigned int, unsigned int> > found_matches, found_op_matches;
@@ -455,28 +456,28 @@ int main(int argc, char* argv[]){
                     }
                 }
                 
-                //if order training is done, then evaluate the order
-                if(ssearch.orderer->samplingSearchDone && evalWindows < 302){
+                //if order training is done, then evaluate the order on up to 100 windows
+                if(ssearch.orderer->samplingSearchDone && evalWindows < 101){
                     evalBases += seq_partitions[j].first.size();
                     if(opt_searchcomp){ evalBases += seq_partitions[j].first.size(); }
                     
-                    if(evalWindows == 0){
+                    if(evalWindows == 0){ //reset ops counters for evaluation
                         for(int i=1; i<ssearch.desc->sses.size(); i++){
                             ssearch.desc->sses[i].table.resetOpsCounter();
                         }
-                        
                         evalBases = 0;
                     }
-                    
-                    if(evalWindows == 300){
-                        unsigned long long ops = 0;
-                        for(int i=1; i<ssearch.desc->sses.size(); i++){
-                            ops += ssearch.desc->sses[i].table.ops();
-                        }
-                        opsPerBase = ops/(double)evalBases;
-                        
-                        //if training only, then finish
-                        if(opt_tonly) doSearch = false;
+
+                    //update statistics
+                    unsigned long long ops = 0;
+                    for(int i=1; i<ssearch.desc->sses.size(); i++){
+                        ops += ssearch.desc->sses[i].table.ops();
+                    }
+                    opsPerBase = ops/(double)evalBases;
+
+                    //if training only, then finish once the evaluation is done
+                    if(evalWindows == 100 && opt_tonly){
+                        doSearch = false;
                     }
                     
                     ++evalWindows;
@@ -518,7 +519,7 @@ int main(int argc, char* argv[]){
             printf("%.3f ops/base\n", opsPerBase);
         }
     
-    //DEBUGGING AND PERFORMANCE MEASURE LOG 
+    //DEBUGGING AND DDEO PERFORMANCE MEASURE LOG 
     /*cout<<"\n";
     cout<<ssearch.orderer->fout.str()<<endl;
     if(ssearch.orderer->activeTuples.size() > 1) {
