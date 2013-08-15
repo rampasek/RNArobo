@@ -34,9 +34,11 @@ static string txt_usage =
 Usage: rnarobo [OPTIONS] <descriptor-file> <sequence-file>\n\
 \n\
   Available options: \n\
-     -c             search both strands of database\n\
-     -f             print output in plain FASTA format\n\
-     -s             print output in FASTA format with element separators\n\
+     -c              search both strands of database\n\
+     -u              reported only non-overlapping occurrences\n\
+     -f              print output in plain FASTA format\n\
+     -s              print output in FASTA format with element separators\n\
+     --nratio FLOAT  set max allowed \"N\"s ratio in reported occurrences\n\
      \n\
   To override default search order training parameters:\n\
   (defaults: --k 3 --limit 40 --alpha 0.025 --iterative TRUE )\n\
@@ -73,8 +75,10 @@ int main(int argc, char* argv[]){
     
     int opt_be_quiet = false;       /* OPTION: TRUE to silence verbosity*/    
     int opt_searchcomp = false;     /* OPTION: TRUE to search both strands of database*/
+    int opt_uniq = false;           /* OPTION: TRUE report only non-overlapping motif occurrences*/
     int opt_fasta = false;          /* OPTION: TRUE to print output in FASTA format*/
     int opt_dotbracked = false;     /* OPTION: TRUE to print also dot-bracked representation*/
+    float opt_nratio = 1.;   //max allowed ratio of "N"s in reported occurrences to its length
     
     int opt_tonly = false;   /* OPTION: TRUE to perform only the training of search ordering */
     int opt_k = -1;
@@ -101,13 +105,15 @@ int main(int argc, char* argv[]){
         {"tonly", 0, 0, 't'},
         {"params", 1, 0, 'p'},
         {"complement", 0, 0, 'c'}, //long alias for -c
+        {"uniq", 0, 0, 'u'}, //long alias for -u
         {"fasta", 0, 0, 'f'}, //long alias for -f
         {"sep", 0, 0, 's'}, //long alias for -s
+        {"nratio", 1, 0, 'n'},
         {NULL, 0, NULL, 0}
     };
     extern int optind;
     int c, option_index = 0;
-    while ((c = getopt_long(argc, argv, "cfs", long_options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "cufs", long_options, &option_index)) != -1) {
         string par;
         
         switch(c) {
@@ -163,7 +169,10 @@ int main(int argc, char* argv[]){
             break;
         case 'c':
             opt_searchcomp = true;
-            break;            
+            break;
+        case 'u':
+            opt_uniq = true;
+            break;
         case 'f':
             opt_fasta = true;
             opt_be_quiet = true;
@@ -173,6 +182,9 @@ int main(int argc, char* argv[]){
             opt_fasta = true;
             opt_be_quiet = true;
             element_separator = "|";
+            break;
+        case 'n':
+            opt_nratio = max(0., min(1., atof(optarg)));
             break;
         case 'd':
             //opt_dotbracked = true;
@@ -263,6 +275,7 @@ int main(int argc, char* argv[]){
     string line;
     long long total_bases_scanned = 0;
     long long total_matches = 0;
+    long long reported_matches = 0;
     
     long long evalBases = 0;
     int evalWindows = 0;
@@ -299,7 +312,7 @@ int main(int argc, char* argv[]){
         found_matches.clear();
         found_op_matches.clear();
         //position of previous matches in the + and - strands
-        pair <unsigned int, unsigned int> prev_match, prev_cmatch; 
+        pair <unsigned int, unsigned int> prev_match, prev_op_match; 
 
         //cut out "N"regions longer than 10 -> the sequence is divided into blocks
         vector< pair<string, unsigned int> > seq_blocks; //pair<block's sequence, block's beginning position in original seqence>
@@ -348,23 +361,45 @@ int main(int argc, char* argv[]){
                     unsigned int match_end = ssearch.solutions[i].back().second +offset;
                     pair<unsigned int, unsigned int> match_pos = make_pair(match_begin, match_end);
                     
-                    if(found_matches.find(match_pos) != found_matches.end()){
+                    //filter duplicates (serves also as counter for number of found occurrences)
+                    if(found_matches.count(match_pos) != 0){
                         continue;
-                    } else {
-                        found_matches.insert(match_pos);
-
-                        print_formated_output(opt_fasta,
-                                            match_begin,
-                                            match_end,
-                                            sq_name,
-                                            sq_details,
-                                            ssearch.solution_to_str(i, seq_partitions[j].first, element_separator)
-                                        );
-                        if (opt_dotbracked == true) {
-                            printf("%s\n", ssearch.solution_to_dotbracket(i, element_separator).c_str());
-                        }
-                        
                     }
+                    found_matches.insert(match_pos);
+                    
+                    //filter out overlapping matches if the option is set
+                    if(opt_uniq){
+                        //this match must not have any overlap with the previous one
+                        if( (prev_match.first <= match_begin && match_begin <= prev_match.second) ||
+                            (prev_match.first <= match_end && match_end <= prev_match.second) ||
+                            (match_begin <= prev_op_match.first && prev_op_match.second <= match_end)
+                        ){
+                            continue;
+                        }
+                        //cout<<prev_match.first<<" "<<prev_match.second<<" vs "<<match_begin<<" "<<match_end<<endl;
+                    }
+                    
+                    //filter by the number of Ns ratio
+                    int num_ns = 0;
+                    for(int x=ssearch.solutions[i][0].first; x<ssearch.solutions[i].back().second; ++x){
+                        if(seq_partitions[j].first[x] == 'N') ++num_ns;
+                    }
+                    if(float(num_ns)/(match_end-match_begin+1) < opt_nratio) continue;
+                    
+                    //report the found motif occurrence
+                    prev_match = match_pos;
+                    ++reported_matches;
+                    print_formated_output(opt_fasta,
+                                        match_begin,
+                                        match_end,
+                                        sq_name,
+                                        sq_details,
+                                        ssearch.solution_to_str(i, seq_partitions[j].first, element_separator)
+                                    );
+                    if (opt_dotbracked == true) {
+                        printf("%s\n", ssearch.solution_to_dotbracket(i, element_separator).c_str());
+                    }
+                    
                 }
 
                 //search the partition also in the opposite direction (if opt_searchcomp == true)
@@ -378,23 +413,45 @@ int main(int argc, char* argv[]){
                         unsigned int match_end = seq_partitions[j].first.size() -ssearch.solutions[i].back().second +1 +offset;
                         pair<unsigned int, unsigned int> match_pos = make_pair(match_begin, match_end);
                         
-                        if(found_op_matches.find(match_pos) != found_op_matches.end()){
+                        //filter duplicates (serves also as counter for number of found occurrences)
+                        if(found_op_matches.count(match_pos) != 0){
                             continue;
-                        } else {
-                            found_op_matches.insert(match_pos);
-                        
-                            print_formated_output(opt_fasta,
-                                            match_begin,
-                                            match_end,
-                                            sq_name,
-                                            sq_details,
-                                            ssearch.solution_to_str(i, seq_partitions[j].first, element_separator)
-                                        );
-                            if (opt_dotbracked == true) {
-                                printf("%s\n", ssearch.solution_to_dotbracket(i, element_separator).c_str());
-                            }
-                        
                         }
+                        found_op_matches.insert(match_pos);
+                        
+                        //filter out overlapping matches if the option is set
+                        if(opt_uniq){
+                            //this match must not have any overlap with the previous one
+                            if( (prev_op_match.second <= match_begin && match_begin <= prev_op_match.first) ||
+                                (prev_op_match.second <= match_end && match_end <= prev_op_match.first) ||
+                                (match_begin >= prev_op_match.first && prev_op_match.second >= match_end)
+                            ){
+                                continue;
+                            }
+                            //cout<<prev_op_match.first<<" "<<prev_op_match.second<<" 'vs' "<<match_begin<<" "<<match_end<<endl;
+                        }
+                        
+                        //filter by the number of Ns ratio
+                        int num_ns = 0;
+                        for(int x=ssearch.solutions[i][0].first; x<ssearch.solutions[i].back().second; ++x){
+                            if(seq_partitions[j].first[x] == 'N') ++num_ns;
+                        }
+                        if(float(num_ns)/(match_begin-match_end+1) < opt_nratio) continue;
+                        
+                        //report the found motif occurrence
+                        prev_op_match = match_pos;
+                        ++reported_matches;
+                        print_formated_output(opt_fasta,
+                                        match_begin,
+                                        match_end,
+                                        sq_name,
+                                        sq_details,
+                                        ssearch.solution_to_str(i, seq_partitions[j].first, element_separator)
+                                    );
+                        if (opt_dotbracked == true) {
+                            printf("%s\n", ssearch.solution_to_dotbracket(i, element_separator).c_str());
+                        }
+                        
                     }
                 }
                 
@@ -441,7 +498,7 @@ int main(int argc, char* argv[]){
     }
     printf("Total bases scanned: %lld\n", total_bases_scanned);
     if(!opt_tonly){
-        printf("Found matches:       %lld\n", total_matches);
+        printf("Reported matches:    %lld (%lld total)\n", reported_matches, total_matches);
     }
     double elapsed = (double)(clock() - tStart)/CLOCKS_PER_SEC;
     printf("Time since start:    %02.0fh %02.0fm %02.0fs (%.2fs)\n",
