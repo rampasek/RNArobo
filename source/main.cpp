@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <fstream>
 #include <ctime>
+#include <cstring>
 #include <cmath>
 #include <getopt.h>
 
@@ -279,7 +280,7 @@ int main(int argc, char* argv[]){
 
         while('A'<=dbin.peek() && dbin.peek()<='z') {
             getline(dbin,line);
-            normalize_seq(line);
+            normalize_seq(line.begin(), line.end());
             sq+=line;
         }
         filter_whitespaces(sq);
@@ -297,24 +298,36 @@ int main(int argc, char* argv[]){
         set <pair <unsigned int, unsigned int> > found_matches, found_op_matches;
         found_matches.clear();
         found_op_matches.clear();
+        //position of previous matches in the + and - strands
+        pair <unsigned int, unsigned int> prev_match, prev_cmatch; 
 
         //cut out "N"regions longer than 10 -> the sequence is divided into blocks
-        vector< pair<string, unsigned int> > seq_blocks; //first is block's sequence, second is block's beginning position in original seqence
+        vector< pair<string, unsigned int> > seq_blocks; //pair<block's sequence, block's beginning position in original seqence>
+        seq_blocks.reserve(4);
+        
         int prev_found = 0;
-        int found = sq.find("NNNNNNNNNN");
-        while(found!=string::npos){
-            seq_blocks.push_back(make_pair(sq.substr(prev_found, found-prev_found+1), prev_found));
-            while(sq[found+10]=='N') ++found;
-            prev_found = found;
-            found=sq.find("NNNNNNNNNN",found+1);
+        char *p = NULL;
+        p = strstr(const_cast<char*>(sq.c_str()), "NNNNNNNNNN");
+        while(p){
+            int found_pos = p - sq.c_str();
+            seq_blocks.push_back(make_pair(sq.substr(prev_found, found_pos-prev_found+1), prev_found));
+            while(found_pos+10 < sq.size() && sq[found_pos+10] == 'N'){
+                ++found_pos;
+                ++p;
+            }
+            prev_found = found_pos;
+            p = strstr(p+1, "NNNNNNNNNN");
         }
+        
         seq_blocks.push_back(make_pair(sq.substr(prev_found, sq.size()), prev_found));
-
+        
         for(int k=0; k<seq_blocks.size() && doSearch; k++){
             //chop up the given block to partitions of length at most max_seq_length
             // ! two partitions must have overlap of max_motif_length !
             int pointer = 0;
             vector< pair<string, unsigned int> > seq_partitions;
+            seq_partitions.reserve(sq.size() / max_seq_length +1);
+            
             while(pointer < seq_blocks[k].first.size()){
                 int start = max(0, pointer-max_motif_length+1);
 
@@ -327,7 +340,7 @@ int main(int argc, char* argv[]){
             for(int j=0; j<seq_partitions.size() && doSearch; j++){
                 ssearch.search(seq_partitions[j].first);
 
-                unsigned int offset = seq_partitions[j].second+ seq_blocks[k].second;
+                unsigned int offset = seq_partitions[j].second + seq_blocks[k].second;
 
                 //print found hits
                 for(int i=0;i<ssearch.solutions.size() && !opt_tonly;i++){

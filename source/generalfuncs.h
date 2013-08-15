@@ -35,9 +35,9 @@ inline bool get_valuable_line(ifstream &fin, string &str){
         it=line.begin();
         while(isspace(*it)) ++it;
 
-        if( it==line.end() ) continue;
+        if(it == line.end()) continue;
 
-        if( *it!='#' ) {
+        if(*it != '#') {
             str = line;
             return true;
         }
@@ -47,32 +47,11 @@ inline bool get_valuable_line(ifstream &fin, string &str){
     return false;
 }
 
-/* 
-inline bool get_valuable_line(ifstream &fin, string &str){
-    char chbuff[512];
-    char* ch;
-    while(fin.getline(chbuff, 512, '\n')){
-        ch=chbuff;
-        while(*ch!='\0' && isspace(*ch)) ++ch;
-        
-        if(*ch == '\0') continue;
-        
-        if(*ch != '#') { //it's not a comment line
-            str = chbuff;
-            return true;
-        }
-    }
-    
-    str = "";
-    return false;
-}
-*/
-
 //normalize the given string = bring to uppercase and replace 'U's by 'T's
-inline void normalize_seq(string &seq){
-    transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
-    for(string::iterator it=seq.begin(); it!=seq.end(); ++it){
-        if(*it=='U') *it='T';
+inline void normalize_seq(string::iterator begin, string::iterator end){
+    for(string::iterator it=begin; it!=end; ++it){
+        if('a' <= *it && *it <= 'z') *it += ('A'-'a');
+        if(*it == 'U') *it = 'T';
     }
 }
 
@@ -144,28 +123,28 @@ inline bool is_complemntary(char &ch_strand1, char &ch_strand2, string &transf_m
 }
 
 // reverse and make complement of the given substring
-inline void reverse_complement(string::iterator first, string::iterator last) {
-  reverse(first, last);
-  for(string::iterator i=first; i!=last; i++) {
-    //char c = toupper(*i);
-    switch (*i){
-    case 'A': //Adenine
-      *i = 'T';
-      break;
-    case 'C': //Cytosine
-      *i = 'G';
-      break;
-    case 'G': //Guanine
-      *i = 'C';
-      break;
-    //case 'U':
-    case 'T': //Thymine in DNA; uracil in RNA
-      *i = 'A';
-      break;
-    default :
-      *i = 'N';
+inline void reverse_complement(string::iterator begin, string::iterator end) {
+    reverse(begin, end);
+
+    for(string::iterator i=begin; i!=end; ++i) {
+        switch (*i){
+            case 'A':
+                *i = 'T';
+                break;
+            case 'C':
+                *i = 'G';
+                break;
+            case 'G':
+                *i = 'C';
+                break;
+            //case 'U':
+            case 'T':
+                *i = 'A';
+                break;
+            default :
+                *i = 'N';
+        }
     }
-  }
 }
 
 // filter out all whitespaces from the given string @s
@@ -178,7 +157,6 @@ inline void filter_whitespaces(string &s){
     
     while(i<size){
         while(i<size && !isspace(s[i])) ++i;
-        if(i==size) return;
         tmp += s.substr(last, i-last);
         while(i<size && isspace(s[i])) ++i;
         last = i;

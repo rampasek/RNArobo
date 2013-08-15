@@ -43,7 +43,7 @@ Descriptor::Descriptor(ifstream &fin){
 
     // read properties of sses declared in the map
     while( get_valuable_line(fin,line) ){
-        normalize_seq(line);
+        normalize_seq(line.begin(), line.end());
         desc_ok &= parse_desc_properties(line);
         if(! desc_ok) desc_ok = parse_desc_order(line);
         if(! desc_ok) {
