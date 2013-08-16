@@ -35,6 +35,7 @@ class Simple_Search{
         interval_pair get_motif_element_domain(intervals &grid, string &seq, int index_in_motif);
         list<interval> get_next_match(SSE &se);
         void get_bndm_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
+        void run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
         void get_naive_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
         void get_simple_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);
         void get_ss_matches(SSE &se, string &seq, interval &begin_reg, interval &end_reg);

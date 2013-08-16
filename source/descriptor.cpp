@@ -78,10 +78,12 @@ Descriptor::Descriptor(ifstream &fin){
     for(int i=1;i<sses.size();i++){
         if(sses[i].is_helix) continue;
 
-        // single strand element with fix-sized core and with NO other wild cards, nor insertions
+        // single strand element with fix-sized core and with NO other wild cards, nor insertions will be search by BNDM;
+        // for the other ss elements will be used forward filtering
         bool fixed_core = (sses[i].size_range.first==(sses[i].size_range.second-sses[i].num_wc_padding.first-sses[i].num_wc_padding.second));
-        if(fixed_core && sses[i].num_insertions==0 && sses[i].stripped_pattern.size()<=128){
-            compile_pattern(sses[i]);
+        bool is_bckwd = fixed_core && sses[i].num_insertions==0;
+        if(sses[i].stripped_pattern.size()<=128){
+            compile_pattern(sses[i], true); // !is_bckwd);
         }
     }
 
@@ -279,7 +281,7 @@ bool Descriptor::expand_wildcards(string &s){
     return true;
 }
 
-// consistency check + wildcars exansion
+// consistency check + wildcards exansion
 int Descriptor::check_consistency(){
     /*
     for(int i=1;i<sses.size();i++){
@@ -409,15 +411,16 @@ inline void setbit(void *v, int p) {
     ((uint32_t*)v)[p >> 5] |= 1 << (p & 31);
 }
 
-//compile pattern for BNDM
-void Descriptor::compile_pattern(SSE &se){
+//compile pattern for Forward filtering resp. Backward search in BNDM
+void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     int patt_length=se.stripped_pattern.size();
     assert(patt_length <= 128);
     int j;
     __m128i zero = {};
     
     se.maskv = (__m128i*)aligned_malloc(256 * sizeof(__m128i), 16);
-    //_mm_storeu_si128(&se.maskv[i], maskv[i]);
+    __m128i I = {}, F = {};
+    
     for(int i=0; i<256; ++i) se.used[i] = 0;
 
     //IUPAC codes
@@ -429,9 +432,36 @@ void Descriptor::compile_pattern(SSE &se){
     string ambig_codes = "NWSMKRYBDHV";
     
     ///PREPROCESSING
-    for(int i = 0; i < patt_length; ++i) {
+    //precompute se.maskv for forward filtering / backward search in BNDM
+    int i = 0;
+    while(i < patt_length) {
+        int pos_in_mask = (isFwdPattern) ? i : patt_length - 1 - i;
+
+        //wild cards are admissible ONLY in forward filtering
+        //NOTE: wildcards can't be a prefix or suffix of the stripped_pattern
+        if(se.stripped_pattern[i] == '*'){
+            assert(isFwdPattern);
+            int block_end = i;
+            while(block_end<patt_length && se.stripped_pattern[block_end]=='*') ++block_end;
+            
+            setbit(&I, i-1); //"gap-initial" state
+            setbit(&F, block_end); //"gap-final" state
+            
+            //set that every nucleotide matches a wild card
+            for(int k=i; k<block_end; ++k){
+                for(int ind=0; ind<4; ++ind){
+                    unsigned int nuc = "ACGT"[ind];
+                    if (!se.used[nuc]){
+                        se.used[nuc] = 1;
+                        se.maskv[nuc] = zero;
+                    }
+                    setbit(&se.maskv[nuc], k);
+                }
+            }
+            i = block_end;
+            
         //if it's a IUPAC code for multiple nucleotides - "classes in pattern"
-        if(ambig_codes.find(se.stripped_pattern[i]) != string::npos){
+        } else if(ambig_codes.find(se.stripped_pattern[i]) != string::npos){
             //allow this position to match all the nucleotides it codes for
             //(by adding this position to their mask of matching positions)
             for(int ind=0; ind<4; ++ind){
@@ -442,21 +472,32 @@ void Descriptor::compile_pattern(SSE &se){
                         se.used[nuc] = 1;
                         se.maskv[nuc] = zero;
                     }
-                    setbit(&se.maskv[nuc], patt_length - 1 - i);
+                    setbit(&se.maskv[nuc], pos_in_mask);
                 }
             }
+            ++i;
+
+        //simple character
         } else {
             j = se.stripped_pattern[i];
             if (!se.used[j]){
                 se.used[j] = 1;
                 se.maskv[j] = zero;
             }
-            setbit(&se.maskv[j], patt_length - 1 - i);
+            setbit(&se.maskv[j], pos_in_mask);
+            ++i;
         }
     }
+
+    // store I, F, ~F in se.maskv[0..2]
+    assert(!se.used[0] && !se.used[1] && !se.used[2]);
+    se.used[0] = 1, se.maskv[0] = I;
+    se.used[1] = 1, se.maskv[1] = F;
+    se.used[2] = 1, se.maskv[2] = _mm_andnot_si128(F, F); //bitwise negation of F
+    //_mm_storeu_si128(&se.maskv[i], maskv[i]);
     
     //"classes in text" - when searched sequence contains ambiguous IUPAC codes
-    for(int i=0; i<ambig_codes.size(); ++i){
+    for(int i=0; i<ambig_codes.size(); ++i){ //initialize to zeros first
         se.used[(unsigned int)ambig_codes[i]] = 1;
         se.maskv[(unsigned int)ambig_codes[i]] = zero;
     }

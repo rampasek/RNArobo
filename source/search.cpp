@@ -143,8 +143,11 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
         bool fixed_core = (se.size_range.first==(se.size_range.second-se.num_wc_padding.first-se.num_wc_padding.second));
 
         // single strand element with fix-sized core and with NO other wild cards, nor insertions
-        if(fixed_core && se.num_insertions==0 && se.stripped_pattern.size()<=128){
+        /*if(fixed_core && se.num_insertions==0 && se.stripped_pattern.size()<=128){
             get_bndm_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
+            
+        } else */if(se.stripped_pattern.size()<=128){
+            run_fwd_ss_filter(se, seq, domain.front().BEGIN, domain.front().END);
 
         // single strand element with fix-sized core and with NO other wild cards nor insertions
         } else if(fixed_core && se.num_insertions==0){
@@ -437,6 +440,131 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                 se.table.incOpsCounter();
             }
         }
+    }
+}
+
+void subtract_m128(__m128i *a, __m128i *b, __m128i *res){
+    uint32_t *Z=((uint32_t*)res), *X=((uint32_t*)a), *Y=((uint32_t*)b);
+    uint32_t carry = 0;
+    for(int i=0; i<4; ++i){
+        Z[i] = X[i] - Y[i] - carry;
+        if(Z[i] > X[i] || (Y[i]==0xFFFFFFFF && carry==1)){
+            carry = 1;
+        } else {
+            carry = 0;
+        }
+    }
+}
+
+void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
+    int patt_length=se.stripped_pattern.size();
+    int seq_length=seq.size();
+    interval match;
+    set<interval> found_matches;
+    
+    assert(patt_length <= 128);
+    
+    ///SEARCH
+    if(patt_length==0){ //special case for a all-wild-card pattern
+        for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; ++i){
+            //add all possible matches of leading/trailing wild cards
+            for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
+                for(int suffix_l=0; suffix_l<=se.num_wc_padding.second; ++suffix_l){
+                    match.first = i - prefix_l;
+                    match.second = i + suffix_l;
+                    //check if the match is inside the search domain
+                    if(end_reg.first < match.second && match.second <= end_reg.second
+                        && match.first >= begin_reg.first && match.first < begin_reg.second)
+                    {
+                        if(found_matches.count(match)==0){
+                            found_matches.insert( match );
+                            se.match_buffer.push( match );
+                        }
+                        #ifdef DEBUG
+                        cout<<se.id<<" has match(bndm) "<<match.first+1<<" to "<<match.second<<" | ";
+                        cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
+                        #endif
+                        
+                        se.table.incOpsCounter();
+                    }
+                }
+            }
+        }
+    } else {
+        unsigned int mask_offset = patt_length >> 5;
+        unsigned int patlen_mask = 1 << ((patt_length-1) & 31);
+        int k = se.num_mismatches + se.num_insertions;
+        __m128i newR, oldR;
+        __m128i R[k + 1];
+        __m128i tmp, one = {1,0}, zero = {};
+        __m128i I = se.maskv[0], F = se.maskv[1], nF = se.maskv[2];
+
+        R[0] = zero;
+        for(int x = 1; x <= k; ++x){
+            tmp = R[x-1];
+            bsl_m128(&tmp);
+            R[x] = _mm_or_si128(R[x-1], tmp);
+            R[x] = _mm_or_si128(R[x], one);
+            
+            tmp = _mm_and_si128(R[x], I);
+            subtract_m128(&F, &tmp, &R[x]);
+            R[x] = _mm_and_si128(R[x], nF);
+        }
+        
+        for(int i = begin_reg.first; i < begin_reg.second+se.num_wc_padding.first; ++i){
+            if( ((uint32_t*) &R[k])[mask_offset] & patlen_mask ){
+                ;//match ending at i-1!!!!
+            }
+            
+            oldR = R[0];
+            
+            
+            //run "dynamic programming" for number of mismatches
+            for(int x = 1; x <= k; ++x){
+                //align text to pattern at this "level"
+                tmp = R[x];
+                bsl_m128(&tmp);
+                tmp = _mm_and_si128(tmp, se.maskv[(int)seq[i]]);
+                
+                //shift left previous "level" - prepare for mismatch
+                bsl_m128(&oldR);
+
+                //by taking OR allow for mismatch and alignment at the same time
+                newR = _mm_or_si128(tmp, oldR);
+
+                oldR = R[x];
+                R[x] = newR;
+
+                se.table.incOpsCounter();
+            }
+        }
+
+        //check for complete matches in prefilter positions
+        /*int start=i;
+        int end=i+patt_length;
+        //add also all possible matches of leading/trailing wild cards
+        for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
+            for(int suffix_l=0; suffix_l<=se.num_wc_padding.second; ++suffix_l){
+                match.first = start - prefix_l;
+                match.second = end + suffix_l;
+                //check if the match is inside the search domain
+                if(end_reg.first < match.second && match.second <= end_reg.second
+                    && match.first >= begin_reg.first && match.first < begin_reg.second)
+                {
+                    if(found_matches.count(match)==0){
+                        found_matches.insert( match );
+                        se.match_buffer.push( match );
+                    }
+                    #ifdef DEBUG
+                    cout<<se.id<<" has match(bndm) "<<match.first+1<<" to "<<match.second<<" | ";
+                    cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
+                    #endif
+
+                    se.table.incOpsCounter();
+                }
+            }
+        }*/
+        
     }
 }
 
