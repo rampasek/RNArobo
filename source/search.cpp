@@ -251,19 +251,19 @@ interval_pair Simple_Search::get_motif_element_domain(intervals &grid, string &s
         }
     }
     if(right_search_bound == -1) right_search_bound = seq.size() - min_right_shift;
-
+    
     //if(right_ncover_bound!=-1 && left_ncover_bound > right_ncover_bound) left_ncover_bound = right_ncover_bound = -1;
-
+    
     //search interval is <left_search_boundary,right_search_boundary)
     //interval to be necessarily covered is <left_ncover_boundary,right_ncover_boundary)
-    //  if -1 is a boundary, it means there is no boundary
-    //  but if both boundaries are -1, it means there IS NOT an interval to be necessarily covered
-
-
+    //if -1 is a boundary, it means there is no boundary
+    // but if both boundaries are -1, it means there IS NOT an interval to be necessarily covered
+    
+    
     ///combine search interval, necessary-to-cover interval and minimal size of the element to obtain the *search domain*
     int lower_begin_bound = left_search_bound;
-    //if an occurrence is already fixed at the right side, then this element must begin so that the gap between these two 
-    //   elements could be (at least theoretically) filled in by the elmenets inbetween them
+    //if an occurrence is already fixed at the right side, then this element must begin so that the gap between these two
+    // elements could be (at least theoretically) filled in by the elmenets inbetween them
     if(fixed_right) lower_begin_bound = max(left_search_bound,
         right_ncover_bound - desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.second);
     
@@ -271,18 +271,18 @@ interval_pair Simple_Search::get_motif_element_domain(intervals &grid, string &s
     int upper_begin_bound = max(left_search_bound+1, right_search_bound+1);
     //if necessary cover interval beginning is defined then a match must start at/before it
     if(fixed_left) upper_begin_bound = min(left_ncover_bound+1, upper_begin_bound);
-
-
+    
+    
     int lower_end_bound = min(right_search_bound-1, left_search_bound-1);
     //if necessary cover interval end is defined then a match must end at/after it
     if(fixed_right) lower_end_bound = max(right_ncover_bound-1, lower_end_bound);
-        
+    
     int upper_end_bound = right_search_bound;
-    //if an occurrence is already fixed at the left side, then this element must end so that the gap between these two 
-    //   elements could be (at least theoretically) filled in by the elmenets inbetween them
+    //if an occurrence is already fixed at the left side, then this element must end so that the gap between these two
+    // elements could be (at least theoretically) filled in by the elmenets inbetween them
     if(fixed_left) upper_end_bound = min(right_search_bound,
         left_ncover_bound + desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.second);
-
+    
     return make_pair( make_pair(lower_begin_bound,upper_begin_bound), make_pair(lower_end_bound,upper_end_bound) );
 }
 
@@ -504,13 +504,17 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
         
         R[0] = zero;
         for(int x = 1; x <= k; ++x){
-            tmp = R[x-1];
-            bsl_m128(&tmp);
-            R[x] = _mm_or_si128(_mm_or_si128(R[x-1], tmp), one);
+            R[x] = zero;
+            /*
+            //tmp = R[x-1];
+            //bsl_m128(&tmp);
+            //R[x] = _mm_or_si128(_mm_or_si128(R[x-1], tmp), one);
+            R[x] = _mm_or_si128(R[x-1], one);
             
             tmp = _mm_and_si128(R[x], I);
             subtract_m128(&F, &tmp, &R[x]);
             R[x] = _mm_and_si128(R[x], nF);
+            */
         }
         
         //start bit-parallel forward searching
@@ -549,11 +553,13 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
 
                 se.table.incOpsCounter();
             }
-            
+
             //if we have a match ending at seq[i]
             if( ((uint32_t*) &R[k])[mask_offset] & patlen_mask){
                 if(end_reg.first - se.num_wc_padding.second < i+1)  match_ends.push(i+1);
                 #ifdef DEBUG
+                    uint32_t *Z = ((uint32_t*) &R[k]);
+                    cout<<i<<" "<<(Z[0]&8)<<(Z[0]&4)<<(Z[0]&2)<<(Z[0]&1)<<endl;
                     cout<<se.id<<" found ending(fwd scan) at "<<i+1<<endl;
                 #endif
             }

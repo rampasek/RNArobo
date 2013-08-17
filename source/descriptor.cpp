@@ -419,7 +419,7 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     __m128i zero = {};
     
     se.maskv = (__m128i*)aligned_malloc(256 * sizeof(__m128i), 16);
-    __m128i I = {}, F = {};
+    __m128i I = {}, F = {}, nF = {};
     
     for(int i=0; i<256; ++i) se.used[i] = 0;
 
@@ -488,12 +488,14 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
             ++i;
         }
     }
-
+    
+    //precompute bitwise negation of F
+    for(int i=0; i<4; ++i) ((uint32_t*) &nF)[i] = ~((uint32_t*) &F)[i];
     // store I, F, ~F in se.maskv[0..2]
     assert(!se.used[0] && !se.used[1] && !se.used[2]);
     se.used[0] = 1, se.maskv[0] = I;
     se.used[1] = 1, se.maskv[1] = F;
-    se.used[2] = 1, se.maskv[2] = _mm_andnot_si128(F, F); //bitwise negation of F
+    se.used[2] = 1, se.maskv[2] = nF; 
     //_mm_storeu_si128(&se.maskv[i], maskv[i]);
     
     //"classes in text" - when searched sequence contains ambiguous IUPAC codes
