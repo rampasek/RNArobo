@@ -55,46 +55,50 @@ inline void normalize_seq(string::iterator begin, string::iterator end){
     }
 }
 
+
+static string iupacA = "WMRDHV";  //these contain A
+static string iupacC = "SMYBHV";  //these contain C
+static string iupacG = "SKRBDV";  //these contain G
+static string iupacT = "WKYBDH";  //these contain T
+
 // evaluate if @ch fits @patt according to IUPAC Notation
 inline bool fits(char &ch, char &patt){
-    //ch=toupper(ch);
-    //patt=toupper(patt);
-    
+    //handle most often cases first
     if(patt=='N' || ch=='N' || patt=='*') return true;
-    
     //if(ch=='U') ch='T';  
     if(ch==patt) return true;
     
+    //the more complicated cases
     switch (patt){
-        /*case 'A': //Adenine
-            return ch=='A';
+        case 'A': //Adenine
+            return iupacA.find(ch)!=string::npos;
         case 'C': //Cytosine
-            return ch=='C';
+            return iupacC.find(ch)!=string::npos;
         case 'G': //Guanine
-            return ch=='G';
-        case 'U':
-        case 'T': //Thymine in DNA; uracil in RNA
-            return ch=='T';*/
+            return iupacG.find(ch)!=string::npos;
+        //case 'U':
+        case 'T': //Thymine in DNA; Uracil in RNA
+            return iupacT.find(ch)!=string::npos;
         case 'M': //aMino
-            return ch=='A' || ch=='C';
+            return ch=='A' || ch=='C' || iupacA.find(ch)!=string::npos || iupacC.find(ch)!=string::npos;
         case 'R': //puRine
-            return ch=='A' || ch=='G';
-        case 'W': //Weak (2 H bonds)
-            return ch=='A' || ch=='T';
-        case 'S': //Strong (3 H bonds)
-            return ch=='C' || ch=='G';
+            return ch=='A' || ch=='G' || iupacA.find(ch)!=string::npos || iupacG.find(ch)!=string::npos;
+        case 'W': //Weak
+            return ch=='A' || ch=='T' || iupacA.find(ch)!=string::npos || iupacT.find(ch)!=string::npos;
+        case 'S': //Strong
+            return ch=='C' || ch=='G' || iupacC.find(ch)!=string::npos || iupacG.find(ch)!=string::npos;
         case 'Y': //pYrimidine
-            return ch=='C' || ch=='T';
+            return ch=='C' || ch=='T' || iupacC.find(ch)!=string::npos || iupacT.find(ch)!=string::npos;
         case 'K': //Keto
-            return ch=='G' || ch=='T';
+            return ch=='G' || ch=='T' || iupacG.find(ch)!=string::npos || iupacT.find(ch)!=string::npos;
         case 'V': //not T
-            return ch!='T';
+            return ch!='T' && iupacT.find(ch)==string::npos;
         case 'H': //not G
-            return ch!='G';
+            return ch!='G' && iupacG.find(ch)==string::npos;
         case 'D': //not C
-            return ch!='C';
+            return ch!='C' && iupacC.find(ch)==string::npos;
         case 'B': //not A
-            return ch!='A';
+            return ch!='A' && iupacA.find(ch)==string::npos;
     }
     return false;
 }

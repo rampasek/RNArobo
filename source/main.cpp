@@ -298,10 +298,6 @@ int main(int argc, char* argv[]){
         }
         filter_whitespaces(sq);
         //cout<<sq_name<<":"<<sq<<endl<<endl;
-        
-        //count number of bases scanned
-        total_bases_scanned += sq.size();
-        if(opt_searchcomp){ total_bases_scanned += sq.size(); }
             
         int max_motif_length = ssearch.desc->get_max_motif_length();
         //to how long pieces we will chop up the sequence
@@ -336,6 +332,10 @@ int main(int argc, char* argv[]){
         seq_blocks.push_back(make_pair(sq.substr(prev_found, sq.size()), prev_found));
         
         for(int k=0; k<seq_blocks.size() && doSearch; k++){
+            //count number of bases scanned
+            total_bases_scanned += seq_blocks[k].first.size();
+            if(opt_searchcomp){ total_bases_scanned += seq_blocks[k].first.size(); }
+            
             //chop up the given block to partitions of length at most max_seq_length
             // ! two partitions must have overlap of max_motif_length !
             int pointer = 0;
@@ -373,7 +373,7 @@ int main(int argc, char* argv[]){
                         //this match must not have any overlap with the previous one
                         if( (prev_match.first <= match_begin && match_begin <= prev_match.second) ||
                             (prev_match.first <= match_end && match_end <= prev_match.second) ||
-                            (match_begin <= prev_op_match.first && prev_op_match.second <= match_end)
+                            (match_begin <= prev_match.first && prev_match.second <= match_end)
                         ){
                             continue;
                         }

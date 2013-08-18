@@ -82,8 +82,8 @@ Descriptor::Descriptor(ifstream &fin){
         // for the other ss elements will be used forward filtering
         bool fixed_core = (sses[i].size_range.first==(sses[i].size_range.second-sses[i].num_wc_padding.first-sses[i].num_wc_padding.second));
         bool is_bckwd = fixed_core && sses[i].num_insertions==0;
-        if(sses[i].stripped_pattern.size()<=128){
-            compile_pattern(sses[i], true); // !is_bckwd);
+        if(sses[i].stripped_pattern.size() <= 128){
+            compile_pattern(sses[i], !is_bckwd);
         }
     }
 

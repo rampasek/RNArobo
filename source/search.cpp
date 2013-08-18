@@ -112,7 +112,7 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
 
 
     /// find the element occurrences in the domain
-    // DP for helices
+    /// DP for helices
     if(se.is_helix){
         get_h_matches(se, seq, domain);
         
@@ -137,23 +137,24 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
             }
         }*/
         
-    // for single strand elements
+    /// battery of algorithms for single strand elements
     } else {
         //true if the element pattern has fix-sized core, i.e. wild cards are only as prefix/suffix
         bool fixed_core = (se.size_range.first==(se.size_range.second-se.num_wc_padding.first-se.num_wc_padding.second));
 
-        // single strand element with fix-sized core and with NO other wild cards, nor insertions
-        /*if(fixed_core && se.num_insertions==0 && se.stripped_pattern.size()<=128){
+        // BNDM for single strand element with fix-sized core and with NO other wild cards, nor insertions
+        if(fixed_core && se.num_insertions==0 && se.stripped_pattern.size()<=128){
             get_bndm_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
             
-        } else */if(se.stripped_pattern.size()<=128){
+        // bit-parallel forward scan prefiltering - then calls DP algorithms to find matches
+        } else if(se.stripped_pattern.size()<=128){
             run_fwd_ss_filter(se, seq, domain.front().BEGIN, domain.front().END);
-
-        // single strand element with fix-sized core and with NO other wild cards nor insertions
+            
+        // naive alg. for single strand element with fix-sized core and with NO other wild cards nor insertions
         } else if(fixed_core && se.num_insertions==0){
             get_naive_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
             
-        // single strand element with NO insertions
+        // DP for single strand element with NO insertions
         } else if(se.num_insertions==0){
             get_simple_ss_matches(se, seq, domain.front().BEGIN, domain.front().END);
 
@@ -331,7 +332,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
     assert(patt_length <= 128);
     
     ///SEARCH
-    if(patt_length==0){ //special case for a all-wild-card pattern
+    if(patt_length==0){ //special case for an all-wild-card pattern
         for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; ++i){
             //add all possible matches of leading/trailing wild cards
             for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
@@ -357,13 +358,15 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
             }
         }
     } else {
-        unsigned int mask_offset = patt_length >> 5;
-        unsigned int patlen_mask = 1 << ((patt_length-1) & 31);
         int j, last;
         __m128i newR, oldR;
         __m128i R[se.num_mismatches + 1];
         __m128i tmp, ones, zero = {};
         ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
+        
+        //unsigned int mask_offset = patt_length >> 5;
+        uint32_t *p_newR = &((uint32_t*) &newR)[patt_length >> 5];
+        uint32_t patlen_mask = 1 << ((patt_length-1) & 31);
         
         for(int i = begin_reg.first; i < begin_reg.second+se.num_wc_padding.first; i += last){
             if(patt_length - 1 + i >= seq_length) break;
@@ -372,7 +375,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
             last = max(1, patt_length - 1);
             
             R[0] = se.maskv[(int)seq[i + j]];
-            for(int x = 1; x <= se.num_mismatches; ++x) {R[x] = ones; }
+            for(int x = 1; x <= se.num_mismatches; ++x) R[x] = ones;
             newR = ones;
             while(0xFFFF != _mm_movemask_epi8(_mm_cmpeq_epi8(zero, newR))){
                 oldR = R[0];
@@ -405,7 +408,8 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                 --j;
                 
                 //if we have a suffix in the text that is a prefix of the pattern
-                if( ((uint32_t*)&newR)[mask_offset] & patlen_mask ){ //getbit(&newR, patt_length-1)
+                //if( ((uint32_t*)&newR)[mask_offset] & patlen_mask ){ //getbit(&newR, patt_length-1)
+                if( *p_newR & patlen_mask ){
                     if(j>0){
                         last = j;
                     } else { //we have a complete match
@@ -456,6 +460,10 @@ void subtract_m128(__m128i *a, __m128i *b, __m128i *res){
     }
 }
 
+/* Run bit-parallel forward scan filtering for @se.stripped_pattern in @seq. Uses DP algorithms to
+ * find the actual pattern occurrences in filtered regions. Handles all types of allowed errors
+ * (i.e. mismatches, wild-cards, insertions).
+ */
 void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
     int patt_length=se.stripped_pattern.size();
     interval match;
@@ -464,7 +472,7 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
     assert(patt_length <= 128);
     
     if(patt_length==0){
-        ///special treatment for a all-wild-card pattern
+        ///special treatment for an all-wild-card pattern
         for(int i=begin_reg.first; i<begin_reg.second+se.num_wc_padding.first; ++i){
             //add all possible matches of leading/trailing wild cards
             for(int prefix_l=0; prefix_l<=se.num_wc_padding.first; ++prefix_l){
@@ -498,17 +506,18 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
         __m128i tmp, tmp2, one = {1,0}, zero = {};
         __m128i I = se.maskv[0], F = se.maskv[1], nF = se.maskv[2];
         
-        unsigned int mask_offset = patt_length >> 5;
-        //unsigned int *mask_offset = ((uint32_t*) &R[k])[patt_length >> 5];
-        unsigned int patlen_mask = 1 << ((patt_length-1) & 31);
+        //unsigned int mask_offset = patt_length >> 5;
+        uint32_t *p_Rk = &((uint32_t*) &R[k])[patt_length >> 5];
+        uint32_t patlen_mask = 1 << ((patt_length-1) & 31);
         
         R[0] = zero;
         for(int x = 1; x <= k; ++x){
             R[x] = zero;
             /*
-            //tmp = R[x-1];
-            //bsl_m128(&tmp);
-            //R[x] = _mm_or_si128(_mm_or_si128(R[x-1], tmp), one);
+            //init to allow insertions and wild cards in front of the pattern - *we don't need that*
+            tmp = R[x-1];
+            bsl_m128(&tmp);
+            R[x] = _mm_or_si128(_mm_or_si128(R[x-1], tmp), one);
             R[x] = _mm_or_si128(R[x-1], one);
             
             tmp = _mm_and_si128(R[x], I);
@@ -555,8 +564,11 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
             }
 
             //if we have a match ending at seq[i]
-            if( ((uint32_t*) &R[k])[mask_offset] & patlen_mask){
-                if(end_reg.first - se.num_wc_padding.second < i+1)  match_ends.push(i+1);
+            //if( ((uint32_t*) &R[k])[mask_offset] & patlen_mask){
+            if( *p_Rk & patlen_mask){
+                if(end_reg.first <= i+1 + se.num_wc_padding.second + se.num_insertions){
+                    match_ends.push(i+1);
+                }
                 #ifdef DEBUG
                     uint32_t *Z = ((uint32_t*) &R[k]);
                     cout<<i<<" "<<(Z[0]&8)<<(Z[0]&4)<<(Z[0]&2)<<(Z[0]&1)<<endl;
@@ -571,27 +583,29 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
         bool keep_running = true;
         while(keep_running){
             if(!match_ends.empty()){
-                end = match_ends.front();
+                end = match_ends.front() + 1;
                 match_ends.pop();
-                start = end - se.size_range.second;
+                start = end - se.size_range.second - 1;
             } else {
                 start = end = MAX_INT;
                 keep_running = false;
             }
             
-            //expand current window if there is an overlap
-            if(begin_window.first <= start && start <= begin_window.second){ 
-                begin_window.second = end - se.size_range.first +1;
+            //expand current window if there is an overlap
+            if(begin_window.first <= start && start <= begin_window.second){
+                begin_window.second = end - se.size_range.first + 1;
+            
+            //otherwise run search in the current window and create a new one
             } else {
                 //run search in the current window
-                if(begin_window.first != -1){ 
+                if(begin_window.first != -1){
                     begin_window.first = max(begin_window.first, begin_reg.first);
                     begin_window.second = min(begin_window.second, begin_reg.second);
                     
                     // DP for single strand element with NO insertions
                     if(se.num_insertions==0){
                         get_simple_ss_matches(se, seq, begin_window, end_reg);
-                        
+                     
                     // general single strand element DP
                     } else {
                         get_ss_matches(se, seq, begin_window, end_reg);
@@ -599,7 +613,7 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
                 }
                 //create a new window
                 begin_window.first = start;
-                begin_window.second = end - se.size_range.first +1;
+                begin_window.second = end - se.size_range.first + 1;
             }
         }
         
