@@ -62,7 +62,7 @@ static string iupacG = "SKRBDV";  //these contain G
 static string iupacT = "WKYBDH";  //these contain T
 
 // evaluate if @ch fits @patt according to IUPAC Notation
-inline bool fits(char &ch, char &patt){
+inline bool fits(char ch, char &patt){
     //handle most often cases first
     if(patt=='N' || ch=='N' || patt=='*') return true;
     //if(ch=='U') ch='T';  
@@ -122,8 +122,28 @@ inline bool is_complemntary(char &ch_strand1, char &ch_strand2, string &transf_m
         //case 'U':
         case 'T': //Thymine in DNA; uracil in RNA
             return fits(ch_strand2, transf_matrix[3]);
+        case 'M': //aMino
+            return fits('A', transf_matrix[0]) || fits('C', transf_matrix[1]);
+        case 'R': //puRine
+            return fits('A', transf_matrix[0]) || fits('G', transf_matrix[2]);
+        case 'W': //Weak
+            return fits('A', transf_matrix[0]) || fits('T', transf_matrix[3]);
+        case 'S': //Strong
+            return fits('C', transf_matrix[1]) || fits('G', transf_matrix[2]);
+        case 'Y': //pYrimidine
+            return fits('C', transf_matrix[1]) || fits('T', transf_matrix[3]);
+        case 'K': //Keto
+            return fits('G', transf_matrix[2]) || fits('T', transf_matrix[3]);
+        case 'V': //not T
+            return fits('A', transf_matrix[0]) || fits('C', transf_matrix[1]) || fits('G', transf_matrix[2]);
+        case 'H': //not G
+            return fits('A', transf_matrix[0]) || fits('C', transf_matrix[1]) || fits('T', transf_matrix[3]);
+        case 'D': //not C
+            return fits('A', transf_matrix[0]) || fits('G', transf_matrix[2]) || fits('T', transf_matrix[3]);
+        case 'B': //not A
+            return fits('C', transf_matrix[1]) || fits('G', transf_matrix[2]) || fits('T', transf_matrix[3]);
     }
-    return true;
+    return false;
 }
 
 // reverse and make complement of the given substring
@@ -141,12 +161,42 @@ inline void reverse_complement(string::iterator begin, string::iterator end) {
             case 'G':
                 *i = 'C';
                 break;
-            //case 'U':
             case 'T':
                 *i = 'A';
                 break;
-            default :
-                *i = 'N';
+            case 'N':
+                //N doesn't change
+                break;
+            case 'M': //aMino
+                *i = 'K';
+                break;
+            case 'R': //puRine
+                *i = 'Y';
+                break;
+            case 'W': //Weak
+                *i = 'S';
+                break;
+            case 'S': //Strong
+                *i = 'W';
+                break;
+            case 'Y': //pYrimidine
+                *i = 'R';
+                break;
+            case 'K': //Keto
+                *i = 'M';
+                break;
+            case 'V': //not T
+                *i = 'T';
+                break;
+            case 'H': //not G
+                *i = 'G';
+                break;
+            case 'D': //not C
+                *i = 'C';
+                break;
+            case 'B': //not A
+                *i = 'A';
+                break;
         }
     }
 }
