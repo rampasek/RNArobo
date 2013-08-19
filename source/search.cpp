@@ -35,6 +35,20 @@ using namespace GF;
 #define BEGIN first
 #define END second
 
+#if defined(__i386__)
+static __inline__ unsigned long long rdtsc(void){
+    unsigned long long int x;
+    __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
+    return x;
+}
+#elif defined(__x86_64__)
+static __inline__ unsigned long long rdtsc(void){
+    unsigned hi, lo;
+    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+#endif
+
 Simple_Search::Simple_Search(Descriptor &dsc, Orderer &ord){
     desc = &dsc;
     orderer = &ord;
@@ -112,6 +126,7 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
 
 
     /// find the element occurrences in the domain
+    unsigned long long se_start_cycles = rdtsc(); //to measure number of CPU ticks the search takes
     /// DP for helices
     if(se.is_helix){
         get_h_matches(se, seq, domain);
@@ -169,7 +184,8 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
             */
         }
     }
-
+    se.table.incOpsCounter(rdtsc() - se_start_cycles);
+    
     list<interval> match = get_next_match(se);
 
     while(match.front().first != -1 && !have_solution){
@@ -352,7 +368,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                             cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
                         #endif
                         
-                        se.table.incOpsCounter();
+                        //se.table.incOpsCounter();
                     }
                 }
             }
@@ -402,7 +418,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                     oldR = R[x];
                     R[x] = newR;
                     
-                    se.table.incOpsCounter();
+                    //se.table.incOpsCounter();
                 }
                 
                 --j;
@@ -433,7 +449,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                                         cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
                                     #endif
 
-                                    se.table.incOpsCounter();
+                                    //se.table.incOpsCounter();
                                 }
                             }
                         }
@@ -441,7 +457,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                     }
                 }
 
-                se.table.incOpsCounter();
+                //se.table.incOpsCounter();
             }
         }
     }
@@ -492,7 +508,7 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
                             cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
                         #endif
                         
-                        se.table.incOpsCounter();
+                        //se.table.incOpsCounter();
                     }
                 }
             }
@@ -560,7 +576,7 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
                 oldR = R[x];
                 R[x] = newR;
 
-                se.table.incOpsCounter();
+                //se.table.incOpsCounter();
             }
 
             //if we have a match ending at seq[i]
@@ -591,7 +607,8 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
                 keep_running = false;
             }
             
-            //expand current window if there is an overlap
+            //expand current window if there is an overlap
+
             if(begin_window.first <= start && start <= begin_window.second){
                 begin_window.second = end - se.size_range.first + 1;
             
@@ -637,7 +654,7 @@ void Simple_Search::get_naive_ss_matches(SSE &se, string &seq, interval &begin_r
         if(se.num_mismatches==0){
             while(j<patt_length && i+j<seq_length && fits(seq[i+j], se.stripped_pattern[j])){
                 j++;
-                se.table.incOpsCounter();
+                //se.table.incOpsCounter();
             }
         } else { //allow mismatches
             while(j<patt_length && i+j<seq_length && mm<=se.num_mismatches){
@@ -647,7 +664,7 @@ void Simple_Search::get_naive_ss_matches(SSE &se, string &seq, interval &begin_r
                     j++;
                     mm++;
                 }
-                se.table.incOpsCounter();
+                //se.table.incOpsCounter();
             }
         }
         //if it is a complete match, put it to the list of occurrences
@@ -677,7 +694,7 @@ void Simple_Search::get_naive_ss_matches(SSE &se, string &seq, interval &begin_r
                             cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
                         #endif
                             
-                        se.table.incOpsCounter();
+                        //se.table.incOpsCounter();
                     }
                 }
             }
@@ -716,7 +733,7 @@ void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_
             visited.insert(frontier.front());
             frontier.pop();
             
-            se.table.incOpsCounter();
+            //se.table.incOpsCounter();
             
             if(j<patt_length && i<seq_length){
                 if(fits(seq[i], se.stripped_pattern[j])){ //if matches
@@ -724,11 +741,11 @@ void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_
                 } else if(mm+1<=se.num_mismatches){ //if a mismatch
                     frontier.push(make_pair(make_pair(i+1, j+1), mm+1));
                 }
-                se.table.incOpsCounter();
+                //se.table.incOpsCounter();
             }
             if(j<patt_length && se.stripped_pattern[j]=='*'){ //skip the wild card
                 frontier.push(make_pair(make_pair(i, j+1), mm));
-                se.table.incOpsCounter();
+                //se.table.incOpsCounter();
             }
             
             //if it is a complete match, put it to the list of occurrences
@@ -754,7 +771,7 @@ void Simple_Search::get_simple_ss_matches(SSE &se, string &seq, interval &begin_
                                 cout<<se.stripped_pattern<<" "<<seq.substr(match.first, match.second-match.first)<<endl;
                             #endif
                             
-                            se.table.incOpsCounter();
+                            //se.table.incOpsCounter();
                         }
                     }
                 }

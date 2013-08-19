@@ -33,6 +33,7 @@ class Matrix{
         void set_dimensions(unsigned int new_num_dimensions){ num_dimensions=new_num_dimensions; clear(); };
         unsigned long long int ops(){ return access_counter; }
         void incOpsCounter(){ ++access_counter; }
+        void incOpsCounter(unsigned long long c){ access_counter+=c; }
         void resetOpsCounter(){ access_counter=0; }
     private:
         unsigned int num_dimensions;

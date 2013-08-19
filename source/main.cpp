@@ -301,7 +301,7 @@ int main(int argc, char* argv[]){
             
         int max_motif_length = ssearch.desc->get_max_motif_length();
         //to how long pieces we will chop up the sequence
-        int max_seq_length = max(2000, 15*max_motif_length);
+        int max_seq_length = max(3000, 20*max_motif_length);
         if(ssearch.orderer->samplingSearchDone) max_seq_length = max(10000, 50*max_motif_length);
         
         //to store beginnings of found matches (in both strands) - for filtering repeating matches
