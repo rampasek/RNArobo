@@ -19,6 +19,11 @@ using namespace std;
 
 namespace GF {
 
+#define _A 0
+#define _C 1
+#define _G 2
+#define _T 3
+    
 // end program with an error message
 inline int die(string errmsg){
     fprintf(stderr, "ERROR: %s\n", errmsg.c_str());
@@ -103,45 +108,45 @@ inline bool fits(char ch, char &patt){
     return false;
 }
 
-// evaluate if @ch_strand1 is complementary to @ch_strand2 according to @transf_matrix and IUPAC Notation
-inline bool is_complemntary(char &ch_strand1, char &ch_strand2, string &transf_matrix){
-    //ch_strand1=toupper(ch_strand1);
-    //ch_strand2=toupper(ch_strand2);
+// evaluate if @ch_s1 is complementary to @ch_s2 according to @transf_matrix and IUPAC Notation
+inline bool is_complemntary(char &ch_s1, char &ch_s2, string &transf_matrix){
+    //ch_s1=toupper(ch_s1);
+    //ch_s2=toupper(ch_s2);
 
-    if(ch_strand1=='N' || ch_strand2=='N') return true;
-    if(ch_strand1=='*' && ch_strand2=='*') return true; //if both are wildcards - ok
-    if(ch_strand1=='*' || ch_strand2=='*') return false; //if only one is wildcard - bad
+    if(ch_s1=='N' || ch_s2=='N') return true;
+    if(ch_s1=='*' && ch_s2=='*') return true; //if both are wildcards - ok
+    if(ch_s1=='*' || ch_s2=='*') return false; //if only one is wildcard - bad
 
-    switch (ch_strand1){
+    switch (ch_s1){
         case 'A': //Adenine
-            return fits(ch_strand2, transf_matrix[0]);
+            return fits(ch_s2, transf_matrix[_A]);
         case 'C': //Cytosine
-            return fits(ch_strand2, transf_matrix[1]);
+            return fits(ch_s2, transf_matrix[_C]);
         case 'G': //Guanine
-            return fits(ch_strand2, transf_matrix[2]);
+            return fits(ch_s2, transf_matrix[_G]);
         //case 'U':
         case 'T': //Thymine in DNA; uracil in RNA
-            return fits(ch_strand2, transf_matrix[3]);
+            return fits(ch_s2, transf_matrix[_T]);
         case 'M': //aMino
-            return fits('A', transf_matrix[0]) || fits('C', transf_matrix[1]);
+            return fits(ch_s2, transf_matrix[_A]) || fits(ch_s2, transf_matrix[_C]);
         case 'R': //puRine
-            return fits('A', transf_matrix[0]) || fits('G', transf_matrix[2]);
+            return fits(ch_s2, transf_matrix[_A]) || fits(ch_s2, transf_matrix[_G]);
         case 'W': //Weak
-            return fits('A', transf_matrix[0]) || fits('T', transf_matrix[3]);
+            return fits(ch_s2, transf_matrix[_A]) || fits(ch_s2, transf_matrix[_T]);
         case 'S': //Strong
-            return fits('C', transf_matrix[1]) || fits('G', transf_matrix[2]);
+            return fits(ch_s2, transf_matrix[_C]) || fits(ch_s2, transf_matrix[_G]);
         case 'Y': //pYrimidine
-            return fits('C', transf_matrix[1]) || fits('T', transf_matrix[3]);
+            return fits(ch_s2, transf_matrix[_C]) || fits(ch_s2, transf_matrix[_T]);
         case 'K': //Keto
-            return fits('G', transf_matrix[2]) || fits('T', transf_matrix[3]);
+            return fits(ch_s2, transf_matrix[_G]) || fits(ch_s2, transf_matrix[_T]);
         case 'V': //not T
-            return fits('A', transf_matrix[0]) || fits('C', transf_matrix[1]) || fits('G', transf_matrix[2]);
+            return fits(ch_s2, transf_matrix[_A]) || fits(ch_s2, transf_matrix[_C]) || fits(ch_s2, transf_matrix[_G]);
         case 'H': //not G
-            return fits('A', transf_matrix[0]) || fits('C', transf_matrix[1]) || fits('T', transf_matrix[3]);
+            return fits(ch_s2, transf_matrix[_A]) || fits(ch_s2, transf_matrix[_C]) || fits(ch_s2, transf_matrix[_T]);
         case 'D': //not C
-            return fits('A', transf_matrix[0]) || fits('G', transf_matrix[2]) || fits('T', transf_matrix[3]);
+            return fits(ch_s2, transf_matrix[_A]) || fits(ch_s2, transf_matrix[_G]) || fits(ch_s2, transf_matrix[_T]);
         case 'B': //not A
-            return fits('C', transf_matrix[1]) || fits('G', transf_matrix[2]) || fits('T', transf_matrix[3]);
+            return fits(ch_s2, transf_matrix[_C]) || fits(ch_s2, transf_matrix[_G]) || fits(ch_s2, transf_matrix[_T]);
     }
     return false;
 }
