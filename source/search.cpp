@@ -7,9 +7,9 @@
  *
  */
 
-#include <assert.h>
 #include <iostream>
 #include <sstream>
+#include <cassert>
 #include <algorithm>
 #include <vector>
 #include <tr1/array>
@@ -19,6 +19,17 @@
 #include <set>
 #include <stdint.h>
 #include <emmintrin.h>
+
+#if defined(_WIN32)
+    #include <Windows.h>
+#elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+    #include <unistd.h>
+    #include <sys/resource.h>
+    #include <sys/times.h>
+    #include <time.h>
+#else
+    #error "Unable to define getCPUTime() for an unknown OS."
+#endif
 
 #include "search.h"
 #include "generalfuncs.h"
@@ -34,20 +45,6 @@ using namespace GF;
 #define MAX_INT 2147483647
 #define BEGIN first
 #define END second
-
-#if defined(__i386__)
-static __inline__ unsigned long long rdtsc(void){
-    unsigned long long int x;
-    __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-    return x;
-}
-#elif defined(__x86_64__)
-static __inline__ unsigned long long rdtsc(void){
-    unsigned hi, lo;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-}
-#endif
 
 Simple_Search::Simple_Search(Descriptor &dsc, Orderer &ord){
     desc = &dsc;
@@ -110,6 +107,82 @@ void Simple_Search::search(string &seq){
     find_motif(0, seq, grid);
 }
 
+/*
+ * Returns the amount of CPU time used by the current process
+ * in the most precise units possible, or 0 if an error occurred.
+ *
+ * Original author:  David Robert Nadeau
+ * Site:    http://NadeauSoftware.com/
+ * License: Creative Commons Attribution 3.0 Unported License
+ */
+unsigned long long getCPUTime(void){
+    #if defined(_WIN32)
+    /* Windows -------------------------------------------------- */
+    FILETIME createTime;
+    FILETIME exitTime;
+    FILETIME kernelTime;
+    FILETIME userTime;
+    if ( GetProcessTimes( GetCurrentProcess(),
+        &createTime, &exitTime, &kernelTime, &userTime ) != -1 )
+    {
+        return userTime.dwLowDateTime;
+    }
+    
+    #elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+    /* AIX, BSD, Cygwin, HP-UX, Linux, OSX, and Solaris --------- */
+    
+    #if defined(_POSIX_TIMERS) && (_POSIX_TIMERS > 0)
+    /* Prefer high-res POSIX timers, when available. */
+    {
+        clockid_t id;
+        struct timespec ts;
+        #if _POSIX_CPUTIME > 0
+        /* Clock ids vary by OS.  Query the id, if possible. */
+        if ( clock_getcpuclockid( 0, &id ) == -1 )
+            #endif
+        #if defined(CLOCK_PROCESS_CPUTIME_ID)
+        /* Use known clock id for AIX, Linux, or Solaris. */
+        id = CLOCK_PROCESS_CPUTIME_ID;
+        #elif defined(CLOCK_VIRTUAL)
+        /* Use known clock id for BSD or HP-UX. */
+        id = CLOCK_VIRTUAL;
+        #else
+        id = (clockid_t)-1;
+        #endif
+        if ( id != (clockid_t)-1 && clock_gettime( id, &ts ) != -1 )
+            return ts.tv_sec*1000000000ULL + ts.tv_nsec;
+    }
+    #endif
+    
+    #if defined(RUSAGE_SELF)
+    {
+        struct rusage rusage;
+        if ( getrusage( RUSAGE_SELF, &rusage ) != -1 )
+            return rusage.ru_utime.tv_sec*1000000ULL + rusage.ru_utime.tv_usec;
+    }
+    #endif
+    
+    #if defined(CLOCKS_PER_SEC)
+    {
+        clock_t cl = clock();
+        if ( cl != (clock_t)-1 )
+            return cl / (CLOCKS_PER_SEC/100);
+    }
+    #endif
+    
+    #if defined(_SC_CLK_TCK)
+    {
+        struct tms tms;
+        if ( times( &tms ) != (clock_t)-1 )
+            return tms.tms_utime;
+    }
+    #endif
+    
+    #endif
+    
+    return 0;      /* Failed. */
+}
+
 void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
     SSE& se = desc->sses[ orderer->searchOrder[ind] ]; //sse that is going to be searched for
     list<interval_pair> domain = get_domain(grid, seq, se);
@@ -126,7 +199,7 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
 
 
     /// find the element occurrences in the domain
-    unsigned long long se_start_cycles = rdtsc(); //to measure number of CPU ticks the search takes
+    unsigned long long se_start_t = getCPUTime(); //to measure CPU time the search takes
     /// DP for helices
     if(se.is_helix){
         get_h_matches(se, seq, domain);
@@ -184,7 +257,8 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
             */
         }
     }
-    se.table.incOpsCounter(rdtsc() - se_start_cycles);
+    //cout<<getCPUTime() - se_start_t<<" ";
+    se.table.incOpsCounter(getCPUTime() - se_start_t);
     
     list<interval> match = get_next_match(se);
 

@@ -2,6 +2,13 @@ CC      = g++
 CFLAGS  = -O3 -Wall -Wno-sign-compare -msse -msse2 #-Wextra
 LD      = $(CC)
 LFLAGS  = -Wall
+SLIBS   =
+
+# To get POSIX timers we need to link librt
+UNAME_S = $(shell uname -s)
+ifneq ($(UNAME_S),Darwin)
+    SLIBS += -lrt
+endif
 
 # Name of the final executable
 EXE     = rnarobo
@@ -28,7 +35,7 @@ all: $(EXE)
 
 $(EXE): $(OBJS)
 	@echo Linking $@.
-	@$(LD) $(LFLAGS) $(OBJS) -o $@
+	@$(LD) $(LFLAGS) $(OBJS) $(SLIBS) -o $@
 	
 -include $(DEPS)
 
