@@ -401,12 +401,15 @@ inline bool getbit(void *v, int p) {
     return ( ((uint32_t*)v)[p >> 5] & (1 << (p & 31)) ) != 0;
 }
 
-static __m128i carry64 __attribute__((aligned(16))) = (__v2di){0,1};
 //bitwise shift left on __m128i
-inline void bsl_m128(__m128i *v){    
+inline void bsl_m128(__m128i *v){
+    *v = _mm_or_si128(_mm_slli_epi64(*v, 1), _mm_srli_epi64(_mm_slli_si128(*v, 8), 63));
+    /*
+    __m128i carry64 __attribute__((aligned(16))) = (__v2di){0,1};
     int hibits = _mm_movemask_epi8(*v);
     *v = _mm_slli_epi64(*v, 1);
     if(hibits & 0x80) *v = _mm_or_si128(*v, carry64);
+    */
 }
 
 /* Run BNDM pattern search for @se.pattern in @seq. All occurrences must begin
