@@ -89,6 +89,7 @@ Descriptor::Descriptor(ifstream &fin){
 
     
     // compute information content of all SSEs
+    //compute_inf_contentsOLD();
     compute_inf_contents();
     
     //compute_pknot_levels();
@@ -512,12 +513,202 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     }
 }
 
+inline double log2(double x){
+    return log(x) / log(2);
+}
+
+static double ninf = -1. / 0.;
+inline double logsum(double x, double y){
+    if(x == ninf) return y;
+    if(y == ninf) return x;
+    double a = max(x, y);
+    double b = min(x, y);
+    return a + log2(1. + pow(2, b-a) );
+}
+
 //compute information content of all elements
 void Descriptor::compute_inf_contents(){
     string bases = "ACGT";
-    string one="ACGTU";
-    string two="MRWSYK";
-    string three="VHBD";
+    string one = "ACGTU";
+    string two = "MRWSYK";
+    string three = "VHBD";
+    
+    int maxlength = 0;
+    for(int i = 1; i < sses.size(); ++i) maxlength = max(maxlength, sses[i].size_range.second);
+    ++maxlength;
+    
+    double logbin[maxlength][maxlength];
+    logbin[0][0] = 0;
+    for(int n = 1; n < maxlength; n++) {
+        logbin[n][0] = 0;
+        logbin[n][n] = 0;
+        for(int k = 1; k < n; k++) {
+            logbin[n][k] = logsum(logbin[n - 1][k], logbin[n - 1][k - 1]);
+        }
+    }
+    
+    for(int i = 1; i < sses.size(); ++i){
+        double logX = 0, entropy_before = 0;
+        int N = sses[i].size_range.second;
+        
+        double insEntropy = 0;
+        if(sses[i].allowed_insertion == 'N'){
+            insEntropy += log2(4);
+        } else if(one.find(sses[i].allowed_insertion) != string::npos){
+            insEntropy += log2(1);
+        } else if(two.find(sses[i].allowed_insertion) != string::npos){
+            insEntropy += log2(2);
+        } else if(three.find(sses[i].allowed_insertion) != string::npos){
+            insEntropy += log2(3);
+        }
+        
+        ///helix --------------------------------------------------->
+        if (sses[i].is_helix){
+            entropy_before = 2 * N * log2(4);
+            double meanP = 0, countP = 0;
+            double P = 0;
+            
+            //calculate P
+            for(int p1=0; p1<4; ++p1){
+                for(int p2=0; p2<4; ++p2){
+                    if(is_complemntary(bases[p1], bases[p2], sses[i].transf_matrix)){
+                        ++P;
+                    }
+                }
+            }
+            
+            //1.) count (in log-space) number of sequences matching sses[i] without any distortion or wild card
+            for(int j=0; j<sses[i].pattern.size(); j++){
+                int Ppos = 0;
+                if(sses[i].pattern[j]=='*' || sses[i].complement[j]=='*') continue;
+                
+                for(int p1=0; p1<4; ++p1){
+                    for(int p2=0; p2<4; ++p2){
+                        if( fits(bases[p1], sses[i].pattern[j]) &&
+                            fits(bases[p2], sses[i].complement[j]) &&
+                            is_complemntary(bases[p1], bases[p2], sses[i].transf_matrix)
+                        ){
+                            ++Ppos;
+                        }
+                    }
+                }
+                logX += log2(Ppos);
+                meanP += Ppos;
+                ++countP;
+            }
+            meanP /= countP;
+            
+            //2.) add blocks of wild cards
+            int block_size = 0;
+            int pos = 0;
+            while(pos < sses[i].pattern.size()){
+                while(pos < sses[i].pattern.size() && sses[i].pattern[pos] != '*') ++pos;
+                while(pos < sses[i].pattern.size() && sses[i].pattern[pos] == '*'){
+                    ++pos;
+                    ++block_size;
+                }
+                
+                double tmp = ninf;
+                for(int j=0; j<=block_size; ++j){
+                    tmp = logsum(tmp, j * log2(P) + (block_size-j) * log2(16));
+                }
+                logX += tmp;
+            }
+            
+            //3.) include mismatches
+            double tmp = ninf;
+            for(int j=1; j<sses[i].num_mismatches; j++){
+                tmp = logsum(tmp, logbin[(int)countP][j] + j*log2((P-meanP) / meanP) );
+            }
+            logX = logsum(logX, logX + tmp);
+            
+            //4.) include mispairs
+            tmp = ninf;
+            for(int j=1; j<sses[i].num_mispairings; j++){
+                tmp = logsum(tmp, logbin[N][j] + j*log2((16-meanP) / meanP) );
+            }
+            logX = logsum(logX, logX + tmp);
+            
+            //5.) insertions
+            tmp = ninf;
+            for(int j=1; j<sses[i].num_insertions; j++){
+                tmp = logsum(tmp, logbin[max(1, 2*N - 4)][j] + j*insEntropy + (2*sses[i].num_insertions - j)*log2(4));
+            }
+            logX = logsum(logX + 2 * sses[i].num_insertions * log2(4), logX + tmp);
+            
+        ///single strand -------------------------------------------->
+        } else {
+            entropy_before = N * log2(4);
+            double meanC = 0, countC = 0;
+            
+            //1.) count (in log-space) number of sequences matching sses[i] without any distortion or wild card
+            for(int j=0; j<sses[i].pattern.size(); j++){
+                char c = sses[i].pattern[j];
+                if(c == 'N'){
+                    logX += log2(4);
+                } else if(c == '*'){
+                    ; //ignore wild cards for now
+                } else if(one.find(c) != string::npos){
+                    logX += log2(1);
+                    meanC += 1;
+                    ++countC;
+                } else if(two.find(c) != string::npos){
+                    logX += log2(2);
+                    meanC += 2;
+                    ++countC;
+                } else if(three.find(c) != string::npos){
+                    logX += log2(3);
+                    meanC += 3;
+                    ++countC;
+                }
+            }
+            meanC /= countC;
+            
+            //2.) add blocks of wild cards
+            int block_size = 0;
+            int pos = 0;
+            while(pos < sses[i].pattern.size()){
+                while(pos < sses[i].pattern.size() && sses[i].pattern[pos] != '*') ++pos;
+                while(pos < sses[i].pattern.size() && sses[i].pattern[pos] == '*'){
+                    ++pos;
+                    ++block_size;
+                }
+                logX += block_size * log2(4) + log2(block_size + 1);
+            }
+            
+            //3.) include mismatches
+            double tmp = ninf;
+            for(int j=1; j<sses[i].num_mismatches; j++){
+                tmp = logsum(tmp, logbin[(int)countC][j] + j*log2((4.-meanC) / meanC) );
+            }
+            logX = logsum(logX, logX + tmp);
+            
+            //4.) insertions
+            tmp = ninf;
+            for(int j=1; j<sses[i].num_insertions; j++){
+                tmp = logsum(tmp, logbin[max(1, N-2)][j] + j*insEntropy + (sses[i].num_insertions - j)*log2(4));
+            }
+            logX = logsum(logX + sses[i].num_insertions * log2(4), logX + tmp);
+        }
+        
+        sses[i].infContent = entropy_before - logX;
+        
+        //debug output
+        /*
+        for(map<string, int>::iterator it=transl.begin();it!=transl.end();++it){
+            if( it->second == sses[i].id ){
+                cout<<it->first<<"("<<sses[i].id<<") before = "<<entropy_before<<"  after = "<<logX<<" IC= "<<sses[i].infContent<<endl;
+                break;
+            }
+        }*/
+    }
+}
+
+void Descriptor::compute_inf_contentsOLD(){
+    string bases = "ACGT";
+    string one = "ACGTU";
+    string two = "MRWSYK";
+    string three = "VHBD";
     
     for(int i=1;i<sses.size();i++){
         double ic = 0;
@@ -612,13 +803,13 @@ void Descriptor::compute_inf_contents(){
         sses[i].infContent = ic;
         
         //debug output
-        /*
+        
         for(map<string, int>::iterator it=transl.begin();it!=transl.end();++it){
             if( it->second == sses[i].id ){
                 cout<<it->first<<"("<<sses[i].id<<") IC = "<<ic<<endl<<endl;
                 break;
             }
-        }*/
+        }
     }
 }
 
