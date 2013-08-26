@@ -148,6 +148,7 @@ bool Descriptor::parse_desc_properties(string line){
     map<string, int>::iterator it=transl.find(item);
     if( it==transl.end() ) return false; //if it is unknown
     first_char_in_name=item[0];
+    sses[it->second].name=item;
 
     if( sses[it->second].is_helix){ //if sse is helix
         //get number of tolerated mismatches, mispairings and insertions

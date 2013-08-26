@@ -34,6 +34,7 @@ static void aligned_free(void* p){
 // the structure to represent an Secondary Structure Element
 struct SSE{
     int id;
+    string name;
     bool is_helix;              // TRUE if the SSE is a helix, FALSE if a single strand
     interval size_range;        // the interval of eligible length of the SSE
     string pattern;             // primary structure restrictions for the SSE
