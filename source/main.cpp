@@ -78,7 +78,7 @@ int main(int argc, char* argv[]){
     int opt_uniq = false;           /* OPTION: TRUE report only non-overlapping motif occurrences*/
     int opt_fasta = false;          /* OPTION: TRUE to print output in FASTA format*/
     int opt_dotbracked = false;     /* OPTION: TRUE to print also dot-bracked representation*/
-    float opt_max_nratio = 0.;   //max allowed ratio of "N"s in reported occurrences to its length
+    float opt_max_nratio = 1.;      // max allowed ratio of "N"s in reported occurrences to its length
     
     int opt_tonly = false;   /* OPTION: TRUE to perform only the training of search ordering */
     int opt_k = -1;
@@ -389,7 +389,7 @@ int main(int argc, char* argv[]){
                     for(int x=ssearch.solutions[i][0].first; x<ssearch.solutions[i].back().second; ++x){
                         if(seq_partitions[j].first[x] == 'N') ++num_ns;
                     }
-                    if(float(num_ns)/(match_end-match_begin+1) < opt_max_nratio) continue;
+                    if(float(num_ns)/(match_end-match_begin+1) > opt_max_nratio) continue;
                     
                     //report the found motif occurrence
                     prev_match = match_pos;
@@ -441,7 +441,7 @@ int main(int argc, char* argv[]){
                         for(int x=ssearch.solutions[i][0].first; x<ssearch.solutions[i].back().second; ++x){
                             if(seq_partitions[j].first[x] == 'N') ++num_ns;
                         }
-                        if(float(num_ns)/(match_begin-match_end+1) < opt_max_nratio) continue;
+                        if(float(num_ns)/(match_begin-match_end+1) > opt_max_nratio) continue;
                         
                         //report the found motif occurrence
                         prev_op_match = match_pos;

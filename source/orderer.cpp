@@ -402,8 +402,8 @@ void Orderer::eliminateAgainstKTuple(int tupleID){
                     eliminated.push_back(tupleID);
                     eliminateSelf = true;
                 } else if(!eliminateSelf &&
-                         tupleStats[*it].sampledOpsPerWindow.size() > 50 &&
-                         tupleStats[tupleID].sampledOpsPerWindow.size() > 50
+                         tupleStats[*it].sampledOpsPerWindow.size() > 100 &&
+                         tupleStats[tupleID].sampledOpsPerWindow.size() > 100
                         ) //break tie between these tuples
                 {
                     double sum1=0;

@@ -166,7 +166,7 @@ unsigned long long getCPUTime(void){
     {
         clock_t cl = clock();
         if ( cl != (clock_t)-1 )
-            return cl / (CLOCKS_PER_SEC/100);
+            return cl / (CLOCKS_PER_SEC/1000);
     }
     #endif
     
