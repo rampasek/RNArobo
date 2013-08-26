@@ -42,7 +42,6 @@ class Descriptor{
         int  check_consistency();
         bool has_no_duplicates(vector<int> vec);
         void compute_inf_contents();
-        void compute_inf_contentsOLD();
         void compute_auxiliary_stats();
         void compile_pattern(SSE &se, bool isFwdPattern);
         void compute_pknot_levels();

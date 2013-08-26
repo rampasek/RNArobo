@@ -17,6 +17,10 @@
 
 #include "descriptor.h"
 
+#define _IC_H  0
+#define _IC_SS 1
+#define _DF    2
+
 using namespace std;
 
 class Orderer{
@@ -27,7 +31,7 @@ class Orderer{
         int currentKTupleID;     // index of currently selected k-tuple in tupleStats
         vector<int> fixedOrder;     // the ordered list of SSEs that are already fixed, it's a prefix of srchOrder
         vector<int> searchOrder;     // the ordered list of SSEs to be searched (indices to the vector "sses")
-				pair<vector<double>, vector<double> > heuristicParams;
+        vector< vector<double> > heuristicParams; //coefficients for combining heuristics to score
         bool doIterativeTraining;
         bool samplingSearchDone;
         
@@ -36,7 +40,7 @@ class Orderer{
         unsigned long long scannedBases;
         
         Orderer(){};
-        Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams);
+        Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alphaID, bool doIT, vector< vector<double> > hParams);
         void setNewSearchOrder(int seqSize);
         
     private:

@@ -87,16 +87,7 @@ int main(int argc, char* argv[]){
     int opt_iterative = -1;
     string opt_paramsfile = "";
     const char *alphas[] = {"0.2", "0.1", "0.05", "0.025", "0.01"};
-    pair<vector<double>, vector<double> > params;
-    double IC = 1;
-    double DF = -0.3;
-    params.first.push_back(4*IC);
-    params.first.push_back(2*IC);
-    params.first.push_back(1*IC);
-    params.second.push_back(4*DF);
-    params.second.push_back(2*DF);
-    params.second.push_back(1*DF);
-
+    
     static struct option long_options[] = {
         {"k", 1, 0, 'k'},
         {"limit", 1, 0, 'l'},
@@ -205,15 +196,30 @@ int main(int argc, char* argv[]){
     unsigned int param_limit = opt_tonly?60:40;
     unsigned int param_alpha = opt_tonly?3:3;
     bool param_iterative = true;
+    vector< vector<double> > params(3);
+    double IC_H = 1;
+    double IC_SS = 2;
+    double DF = -0.3;
+    
     //override default parameters by the user-defined
     if(opt_k != -1) param_k = opt_k;
     if(opt_limit != -1) param_limit = opt_limit;
     if(opt_alpha != -1) param_alpha = opt_alpha;
     if(opt_iterative != -1) param_iterative = opt_iterative;
+    
+    //set coeficients for mixing IC and DF heuristic into a score
+    for(int i=param_k-1; i>=0; --i){
+        params[_IC_H].push_back(pow(2,i) * IC_H);
+        params[_IC_SS].push_back(pow(2,i) * IC_SS);
+        params[_DF].push_back(pow(2,i) * DF);
+    }
     if(opt_paramsfile != "") {
         ifstream pfile(opt_paramsfile.c_str(), ifstream::in);
-        for (int i=0; i<param_k; i++) pfile >> params.first[i];
-        for (int i=0; i<param_k; i++) pfile >> params.second[i];
+        for (int i=0; i<param_k; i++){
+            pfile >> params[_IC_H][i];
+            pfile >> params[_IC_SS][i];
+            pfile >> params[_DF][i];
+        }
     }
     /*cout<<optind<<endl;
     for ( ; optind < argc; optind++) {
@@ -258,8 +264,6 @@ int main(int argc, char* argv[]){
                : desc.search_order_to_str(desc.predef_srch_order).c_str()) );
         printf("Order training params:          k=%u limit=%u alpha=%s iter=%s\n",
                param_k, param_limit, alphas[param_alpha], (param_iterative? "true":"false") );
-        //printf("IC parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.first[i]); printf("\n");
-        //printf("DF parameters for heuristic:"); for (int i=0; i<param_k; i++) printf(" %f", params.second[i]); printf("\n");
         printf("------------------------------------------------------------------\n");
         
         if(opt_tonly){
@@ -512,19 +516,19 @@ int main(int argc, char* argv[]){
            (opsPerBase==-1 ? "*:" : ": "),
            ssearch.desc->search_order_to_str(ssearch.orderer->searchOrder).c_str()
           );
-    printf("Est. difficulty:     ");
+    /*printf("Est. difficulty:     ");
         if(opsPerBase == -1){
             printf("-\n");
         } else {
             printf("%.3f ops/base\n", opsPerBase);
-        }
+        }*/
     
     //DEBUGGING AND DDEO PERFORMANCE MEASURE LOG 
     /*cout<<"\n";
     cout<<ssearch.orderer->fout.str()<<endl;
     if(ssearch.orderer->activeTuples.size() > 1) {
         cout<<"K: "<<ssearch.orderer->K<<endl;
-        cout<<"tuples sampled means (memOPs per window):\n";
+        cout<<"tuples sampled means (ops per window):\n";
         for(int i=0;i<ssearch.orderer->tupleStats.size();++i){
             double sum=0;
             for(int j=0;j<ssearch.orderer->tupleStats[i].sampledOpsPerWindow.size(); ++j){
@@ -548,9 +552,7 @@ int main(int argc, char* argv[]){
             <<ssearch.orderer->scannedBases/(double)ssearch.orderer->scannedWindows<<endl;
     }*/
     
-    
-/*
-    cout<<"memOps stats from table: \n";
+    /*cout<<"ops stats from table: \n";
     unsigned long long ops = 0ULL;
     for(int i=0; i<ssearch.orderer->searchOrder.size(); i++){
         int id = ssearch.orderer->searchOrder[i];
@@ -564,10 +566,10 @@ int main(int argc, char* argv[]){
         cout<<name<<": "<<ssearch.desc->sses[id].table.ops()<<endl;
         ops += ssearch.desc->sses[id].table.ops();
     }
-    cout<<"AllMemOps: "<<ops<<endl;
-    cout<<"MemOps/second: "<<ops/elapsed<<endl;
+    cout<<"AllOps: "<<ops<<endl;
+    cout<<"ops/second: "<<ops/elapsed<<endl;
 
-    cout<<"\n\nmemOps stats from tuples: \n";
+    cout<<"\n\nops stats from tuples: \n";
     unsigned long long ops2 = 0ULL;
     for(int i=0; i<ssearch.orderer->tupleStats.size(); i++){
         struct TupleStats stats = ssearch.orderer->tupleStats[i];
@@ -593,11 +595,11 @@ int main(int argc, char* argv[]){
             cout<<stats.sampledOpsPerWindow[j]<<" ";
         }cout<<endl;
     }
-    cout<<"AllMemOps: "<<ops2<<endl;
-    cout<<"MemOps/second: "<<ops2/elapsed<<endl;
+    cout<<"AllOps: "<<ops2<<endl;
+    cout<<"ops/second: "<<ops2/elapsed<<endl;
 
     cout<<"\nAllTOGETHER: "<<ops+ops2<<endl;
-    cout<<"MemOps/second: "<<(ops+ops2)/elapsed<<endl;
-*/
+    cout<<"ops/second: "<<(ops+ops2)/elapsed<<endl;
+    */
     return 0;
 }

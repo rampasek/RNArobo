@@ -128,33 +128,6 @@ int welchTest(vector<double> &x, vector<double> &y, double* criticalValues){
     sd1 = sum1/(N1-1);
     sd2 = sum2/(N2-1);
     
-    //recalculate sample mean without outliers
-    sum1=0, sum2=0;
-    unsigned int N1o=N1, N2o=N2; //original sample size
-    for(int i=0;i<N1o;++i){
-        if(x[i] > X1+2*sd1 || x[i] < X1-2*sd1){ --N1; continue; } //filter outliers
-        sum1 += x[i];
-    }
-    for(int i=0;i<N2o;++i){
-        if(y[i] > X2+2*sd2 || y[i] < X2-2*sd2){ --N2; continue; } //filter outliers
-        sum2 += y[i];
-    }
-    X1 = sum1/N1;
-    X2 = sum2/N2;
-    
-    //recalculate unbiased sample variance without outliers
-    sum1=sum2=0;
-    for(int i=0;i<N1o;++i){
-        if(x[i] > X1+2*sd1 || x[i] < X1-2*sd1) continue; //filter outliers
-        sum1 += (x[i] - X1)*(x[i] - X1);
-    }
-    for(int i=0;i<N2o;++i){
-        if(y[i] > X2+2*sd2 || y[i] < X2-2*sd2) continue; //filter outliers
-        sum2 += (y[i] - X2)*(y[i] - X2);
-    }
-    sd1 = sum1/(N1-1);
-    sd2 = sum2/(N2-1);
-    
     double g1, g2; //intermediate variables
     g1 = sd1 / N1;
     g2 = sd2 / N2;

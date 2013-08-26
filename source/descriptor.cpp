@@ -89,7 +89,6 @@ Descriptor::Descriptor(ifstream &fin){
 
     
     // compute information content of all SSEs
-    //compute_inf_contentsOLD();
     compute_inf_contents();
     
     //compute_pknot_levels();
@@ -533,11 +532,12 @@ void Descriptor::compute_inf_contents(){
     string one = "ACGTU";
     string two = "MRWSYK";
     string three = "VHBD";
-    
+
+    //precompute binomial coefficients in log-space
     int maxlength = 0;
     for(int i = 1; i < sses.size(); ++i) maxlength = max(maxlength, sses[i].size_range.second);
     ++maxlength;
-    
+
     double logbin[maxlength][maxlength];
     logbin[0][0] = 0;
     for(int n = 1; n < maxlength; n++) {
@@ -563,7 +563,7 @@ void Descriptor::compute_inf_contents(){
             insEntropy += log2(3);
         }
         
-        ///helix --------------------------------------------------->
+        ///Helix ---------------------------------------------------------------->
         if (sses[i].is_helix){
             entropy_before = 2 * N * log2(4);
             double meanP = 0, countP = 0;
@@ -598,6 +598,7 @@ void Descriptor::compute_inf_contents(){
                 ++countP;
             }
             meanP /= countP;
+            //cout<<"mean P:"<<meanP<<"   P:"<<P<<endl;
             
             //2.) add blocks of wild cards
             int block_size = 0;
@@ -611,7 +612,7 @@ void Descriptor::compute_inf_contents(){
                 
                 double tmp = ninf;
                 for(int j=0; j<=block_size; ++j){
-                    tmp = logsum(tmp, j * log2(P) + (block_size-j) * log2(16));
+                    tmp = logsum(tmp, j * log2(P) + (block_size-j) * log2(16-P));
                 }
                 logX += tmp;
             }
@@ -637,7 +638,7 @@ void Descriptor::compute_inf_contents(){
             }
             logX = logsum(logX + 2 * sses[i].num_insertions * log2(4), logX + tmp);
             
-        ///single strand -------------------------------------------->
+        ///Single Strand -------------------------------------------------------->
         } else {
             entropy_before = N * log2(4);
             double meanC = 0, countC = 0;
@@ -702,115 +703,6 @@ void Descriptor::compute_inf_contents(){
                 break;
             }
         }*/
-    }
-}
-
-void Descriptor::compute_inf_contentsOLD(){
-    string bases = "ACGT";
-    string one = "ACGTU";
-    string two = "MRWSYK";
-    string three = "VHBD";
-    
-    for(int i=1;i<sses.size();i++){
-        double ic = 0;
-        ///helix
-        if (sses[i].is_helix){
-            map< pair<char,char>, double> cacheIC;
-            for(int j=0; j<sses[i].pattern.size(); j++){
-                char c1 = sses[i].pattern[j];
-                char c2 = sses[i].complement[j];
-                pair<char,char> cc = make_pair(c1, c2);
-                
-                double pairIC = 0;
-                
-                //if we have calculated this pair before
-                if (cacheIC.count(cc) > 0){
-                    pairIC = cacheIC[cc];
-                } else { //else calculate it and store it
-                    //first, calculate the number of base pairs that match the motif pair
-                    int num = 0;
-                    for(int p1=0; p1<4; ++p1){
-                        for(int p2=0; p2<4; ++p2){
-                            if( fits(bases[p1], c1) &&
-                                fits(bases[p2], c2) &&
-                                is_complemntary(bases[p1], bases[p2], sses[i].transf_matrix)
-                            ){
-                                ++num;
-                            }
-                        }
-                    }
-                    //if the pair is ('*','*'), count in also the option of skipping that pair 
-                    if(c1 == '*' && c1 == c2){ 
-                        ++num;
-                    }
-                    
-                    //information content is:
-                    pairIC = 4 - log(num)/log(2);
-                    cacheIC[cc] = pairIC;
-                }
-                
-                //cout<<"PAIR: "<<c1<<","<<c2<<" pairIC= "<<pairIC<<endl;
-                ic += pairIC;
-            }
-            ic -= 2*sses[i].num_mispairings;
-        ///single strand
-        } else {
-            for(int j=0; j<sses[i].pattern.size(); j++){
-                char c = sses[i].pattern[j];
-                
-                double strandIC = 0;
-                if(c == 'N'){
-                    strandIC += 0; // 2 - log(4)/log(2)
-                } else if(c == '*'){
-                    strandIC += 2 - log(5)/log(2);
-                } else if(one.find(c) != string::npos){
-                    strandIC += 2; // 2 - log(1)/log(2)
-                } else if(two.find(c) != string::npos){
-                    strandIC += 1; // 2 - log(2)/log(2)
-                } else if(three.find(c) != string::npos){
-                    strandIC += 2 - log(3)/log(2);
-                }
-                
-                //cout<<"S: "<<c<<" strandIC= "<<strandIC<<endl;
-                ic += strandIC;
-            }
-        }
-        
-        ic -= 2*sses[i].num_mismatches;
-        
-        if(sses[i].num_insertions > 0){
-            char c = sses[i].allowed_insertion;
-            
-            double insEntropy = 0;
-            if(c == 'N'){
-                insEntropy += 2; // log(4)/log(2)
-            } else if(c == '*'){
-                insEntropy += log(5)/log(2);
-            } else if(one.find(c) != string::npos){
-                insEntropy += 0; // log(1)/log(2)
-            } else if(two.find(c) != string::npos){
-                insEntropy += 1; // log(2)/log(2)
-            } else if(three.find(c) != string::npos){
-                insEntropy += log(3)/log(2);
-            }
-            
-            if(sses[i].is_helix){
-                ic -= sses[i].num_insertions*( log(2*sses[i].pattern.size()-2)/log(2) + insEntropy );
-            } else {
-                ic -= sses[i].num_insertions*( log(sses[i].pattern.size()-1)/log(2) + insEntropy );
-            }
-        }
-        
-        sses[i].infContent = ic;
-        
-        //debug output
-        
-        for(map<string, int>::iterator it=transl.begin();it!=transl.end();++it){
-            if( it->second == sses[i].id ){
-                cout<<it->first<<"("<<sses[i].id<<") IC = "<<ic<<endl<<endl;
-                break;
-            }
-        }
     }
 }
 

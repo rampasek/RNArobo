@@ -23,7 +23,7 @@
 
 using namespace std;
 
-Orderer::Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alphaID, bool doIT, pair<vector<double>, vector<double> > hParams){
+Orderer::Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alphaID, bool doIT, vector< vector<double> > hParams){
     srand ( time(NULL) );
     
     heuristicParams = hParams;
@@ -50,9 +50,6 @@ Orderer::Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alph
     fixedOrder = desc->predef_srch_order;
     searchOrder = fixedOrder;
     completeSearchOrder();
-    
-    //fout<<"doIterativeTraining: "<<doIterativeTraining<<endl;
-    //fout<<"signifLevel: 95"<<endl;
     
     prepareKTuples();
     //cerr<<"WT: "<<WT::test()<<endl<<endl;
@@ -150,11 +147,11 @@ void Orderer::prepareKTuples(){
         cout<<"TupleID: "<<tt<<endl;
         cout<<"  the tuple: ";
         for(int i=0; i<tupleStats[tt].tuple.size(); ++i){
-            cout<<tupleStats[tt].tuple[i]<<" ";
+            cout<<desc->sses[tupleStats[tt].tuple[i]].name<<"("<<tupleStats[tt].tuple[i]<<") ";
         }
         cout<<"  score = "<<tupleStats[tt].heuristicScore<<endl;
-    }*/
-    
+    }
+    */
 }
 
 ///calculate heuristic score for given tuple of elements
@@ -162,7 +159,6 @@ void Orderer::prepareKTuples(){
 ///to be the beginning of the corresponding partial search order
 int Orderer::getTupleScore(vector<int> &tuple){
     //cout<<"size: "<<tuple.size()<<" "<<fixedOrder.size()<<endl;
-    //TODO: kombinacia HF do skore
     double tupleScore = 0;
         
     vector<bool> alreadyFixed(desc->sses.size(), false);
@@ -184,13 +180,17 @@ int Orderer::getTupleScore(vector<int> &tuple){
         alreadyFixed[tuple[i]] = true;
         
         //calculate heuristic score for this sse and add it to the tuple's score using heuristicParams
-        double elementScore = heuristicParams.first[i]*ic;
-        elementScore += heuristicParams.second[i]*domainFlexibility;
+        int coef_ind;
+        if(desc->sses[tuple[i]].is_helix) coef_ind = _IC_H;
+        else coef_ind = _IC_SS;
         
+        double elementScore = heuristicParams[coef_ind][i] * ic;
+        elementScore += heuristicParams[_DF][i] * domainFlexibility;
+
         //weight scaling should be included in heuristicParams
-				tupleScore += elementScore;
+        tupleScore += elementScore;
         
-       //cout<<tuple[i]<<">  ic= "<<ic<<"\n    apxDF= "<<domainFlexibility<<endl;
+        //cout<<tuple[i]<<">  ic= "<<ic<<"\n    apxDF= "<<domainFlexibility<<" score= "<<elementScore<<endl;
     }
     //cout<<"TS: "<<tupleScore<<endl;
     return (int)round(tupleScore);
@@ -198,41 +198,65 @@ int Orderer::getTupleScore(vector<int> &tuple){
 
 ///calculate approximate flexibility of the sse's search domain size
 ///(if helix, then only of the first strand, "-element" means second strand)
-int Orderer::calculateDomainFlexibility(vector<bool> &fixed, int element){
-    int approxDFleft = -1;
-    int approxDFright = -1;
-    int tmpDFleft = 0;
-    int tmpDFright = 0;
-    bool wasSeen = false;
-    for(int j=0; j<desc->motif.size(); ++j){
-        int sseID = abs(desc->motif[j]);
-        //if this motif element is fixed by the time sseID is search for (or it's the other strand)
-        if(fixed[sseID] || (desc->sses[abs(element)].is_helix && desc->motif[j] == -element)){ 
-            if(wasSeen){ //if @element has been seen already => we are at the end of the right side of its domain 
-                approxDFright = tmpDFright;
-                break;
-            } else {
-                tmpDFleft = 0;
-            }
-        } else { //else => this element is not fixed, so add in its flexibility
-            if(wasSeen){ //right side of the domain
-                tmpDFright += desc->sses[sseID].size_range.second - desc->sses[sseID].size_range.first;
-            } else { //left side of the domain
-                tmpDFleft += desc->sses[sseID].size_range.second - desc->sses[sseID].size_range.first;
-            }
-        }
-        
-        if(desc->motif[j] == element){
-            wasSeen = true;
-            approxDFleft = tmpDFleft;
-            tmpDFright += desc->sses[sseID].size_range.second - desc->sses[sseID].size_range.first;
-        }
-    }
-    if(tmpDFright == -1){
-        approxDFright = tmpDFright;
+int Orderer::calculateDomainFlexibility(vector<bool> &fixed, int elementID){
+    int index_in_motif = -1;
+    for(int i=0;i<desc->motif.size();i++) {
+        if( elementID == desc->motif[i]) index_in_motif = i;
     }
     
-    return max(1, min(approxDFleft, approxDFright)+1);
+    //find left boundaries
+    int left_search_bound = -1;
+    int left_ncover_bound = -1;
+    int min_left_shift = 0;
+    int max_left_shift = 0;
+    bool fixed_left = false;
+    for(int i=index_in_motif-1;i>=0;i--){
+        //if this motif element is fixed by the time sseID is search for (or it's the other strand)
+        if(fixed[abs(i)] || (desc->sses[abs(elementID)].is_helix && desc->motif[i] == -elementID)){
+            left_search_bound = min_left_shift;
+            left_ncover_bound = max_left_shift;
+            fixed_left = true;
+            break;
+        } else {
+            min_left_shift += desc->sses[ abs(desc->motif[i]) ].size_range.first;  //minimum of size of the sse
+            max_left_shift += desc->sses[ abs(desc->motif[i]) ].size_range.second; //maximum of size of the sse
+        }
+    }
+    if(left_search_bound == -1) left_search_bound = min_left_shift;
+        
+    //find right boundaries
+    int right_search_bound = -1;
+    int right_ncover_bound = -1;
+    int min_right_shift = 0;
+    int max_right_shift = 0;
+    bool fixed_right = false;
+    for(int i=index_in_motif+1;i<desc->motif.size();i++){
+        //if this motif element is fixed by the time sseID is search for (or it's the other strand)
+        if(fixed[abs(i)] || (desc->sses[abs(elementID)].is_helix && desc->motif[i] == -elementID)){
+            right_ncover_bound = max_left_shift + desc->sses[abs(elementID)].size_range.second;
+            right_search_bound -= right_ncover_bound - min_right_shift;
+            fixed_right = true;
+            break;
+        } else {
+            min_right_shift += desc->sses[ abs(desc->motif[i]) ].size_range.first; //minimum of size of the sse
+            max_right_shift += desc->sses[ abs(desc->motif[i]) ].size_range.second; //maximum of size of the sse
+        }
+    }
+    if(right_search_bound == -1) right_search_bound = desc->sses[abs(elementID)].size_range.second - min_right_shift;
+    
+    ///combine search interval, necessary-to-cover interval and minimal size of the element to obtain the *search domain*
+    int lower_begin_bound = left_search_bound;
+    //if an occurrence is already fixed at the right side, then this element must begin so that the gap between these two
+    // elements could be (at least theoretically) filled in by the elmenets inbetween them
+    if(fixed_right) lower_begin_bound = max(left_search_bound,
+        right_ncover_bound - desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.second);
+    
+    //int upper_begin_bound = max(left_search_bound+1, right_search_bound - desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.first);
+    int upper_begin_bound = max(left_search_bound+1, right_search_bound+1);
+    //if necessary cover interval beginning is defined then a match must start at/before it
+    if(fixed_left) upper_begin_bound = min(left_ncover_bound+1, upper_begin_bound);
+    
+    return max(1, upper_begin_bound - lower_begin_bound);
 }
 
 
@@ -248,7 +272,7 @@ void Orderer::setNewSearchOrder(int seqSize){
     if(activeTuples.size() == 1) {
         ///FOUT begin
         /*fout<<"K: "<<K<<endl;
-        fout<<"tuples sampled means (memOPs per window):\n";
+        fout<<"tuples sampled means (ops per window):\n";
         for(int i=0;i<tupleStats.size();++i){
             double sum=0;
             for(int j=0;j<tupleStats[i].sampledOpsPerWindow.size(); ++j){
@@ -332,9 +356,9 @@ bool Orderer::storeKTupleStats(int tupleID){
     }
     
     //all ops for this tuple + the rest of the search order
-    /*for(int i=fixedOrder.size(); i < searchOrder.size(); ++i){
+    for(int i=fixedOrder.size(); i < searchOrder.size(); ++i){
         allOps += desc->sses[ searchOrder[i] ].table.ops();
-    }*/
+    }
 
     tupleStats[tupleID].basesScanned += currentSeqSize;
     
@@ -378,8 +402,8 @@ void Orderer::eliminateAgainstKTuple(int tupleID){
                     eliminated.push_back(tupleID);
                     eliminateSelf = true;
                 } else if(!eliminateSelf &&
-                         tupleStats[*it].sampledOpsPerWindow.size() > 100 &&
-                         tupleStats[tupleID].sampledOpsPerWindow.size() > 100
+                         tupleStats[*it].sampledOpsPerWindow.size() > 50 &&
+                         tupleStats[tupleID].sampledOpsPerWindow.size() > 50
                         ) //break tie between these tuples
                 {
                     double sum1=0;

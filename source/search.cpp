@@ -199,7 +199,8 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
 
 
     /// find the element occurrences in the domain
-    unsigned long long se_start_t = getCPUTime(); //to measure CPU time the search takes
+    // measure CPU time the search takes (instead of memOps)
+    unsigned long long se_start_t = getCPUTime(); 
     /// DP for helices
     if(se.is_helix){
         get_h_matches(se, seq, domain);
