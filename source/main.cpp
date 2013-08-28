@@ -209,9 +209,9 @@ int main(int argc, char* argv[]){
     
     //set coeficients for mixing IC and DF heuristic into a score
     for(int i=param_k-1; i>=0; --i){
-        params[_IC_H].push_back(pow(2,i) * IC_H);
-        params[_IC_SS].push_back(pow(2,i) * IC_SS);
-        params[_DF].push_back(pow(2,i) * DF);
+        params[_IC_H].push_back(pow(2.,i) * IC_H);
+        params[_IC_SS].push_back(pow(2.,i) * IC_SS);
+        params[_DF].push_back(pow(2.,i) * DF);
     }
     if(opt_paramsfile != "") {
         ifstream pfile(opt_paramsfile.c_str(), ifstream::in);

@@ -517,13 +517,13 @@ inline double log2(double x){
     return log(x) / log(2);
 }
 
-const static double ninf = -1. / 0.;
+const static double ninf = -1. * INFINITY;
 inline double logsum(double x, double y){
     if(x == ninf) return y;
     if(y == ninf) return x;
     double a = max(x, y);
     double b = min(x, y);
-    return a + log2(1. + pow(2, b-a) );
+    return a + log2(1. + pow(2., b-a) );
 }
 
 //compute information content of all elements
