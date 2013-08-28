@@ -61,10 +61,10 @@ inline void normalize_seq(string::iterator begin, string::iterator end){
 }
 
 
-static string iupacA = "WMRDHV";  //these contain A
-static string iupacC = "SMYBHV";  //these contain C
-static string iupacG = "SKRBDV";  //these contain G
-static string iupacT = "WKYBDH";  //these contain T
+const static string iupacA = "WMRDHV";  //these contain A
+const static string iupacC = "SMYBHV";  //these contain C
+const static string iupacG = "SKRBDV";  //these contain G
+const static string iupacT = "WKYBDH";  //these contain T
 
 // evaluate if @ch fits @patt according to IUPAC Notation
 inline bool fits(char ch, char &patt){

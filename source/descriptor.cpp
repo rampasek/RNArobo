@@ -517,7 +517,7 @@ inline double log2(double x){
     return log(x) / log(2);
 }
 
-static double ninf = -1. / 0.;
+const static double ninf = -1. / 0.;
 inline double logsum(double x, double y){
     if(x == ninf) return y;
     if(y == ninf) return x;
@@ -547,7 +547,8 @@ void Descriptor::compute_inf_contents(){
             logbin[n][k] = logsum(logbin[n - 1][k], logbin[n - 1][k - 1]);
         }
     }
-    
+
+    //compute IC for each element
     for(int i = 1; i < sses.size(); ++i){
         double logX = 0, entropy_before = 0;
         int N = sses[i].size_range.second;
@@ -597,7 +598,7 @@ void Descriptor::compute_inf_contents(){
                 meanP += Ppos;
                 ++countP;
             }
-            meanP /= countP;
+            meanP /= countP; //average number of nuleotide pairs allowed per non-wildcard pair
             //cout<<"mean P:"<<meanP<<"   P:"<<P<<endl;
             
             //2.) add blocks of wild cards
@@ -615,6 +616,7 @@ void Descriptor::compute_inf_contents(){
                     tmp = logsum(tmp, j * log2(P) + (block_size-j) * log2(16-P));
                 }
                 logX += tmp;
+                block_size = 0;
             }
             
             //3.) include mismatches
@@ -664,7 +666,7 @@ void Descriptor::compute_inf_contents(){
                     ++countC;
                 }
             }
-            meanC /= countC;
+            meanC /= countC; //average number of nuleotides allowed per non-"N"/"*" position 
             
             //2.) add blocks of wild cards
             int block_size = 0;
@@ -676,6 +678,7 @@ void Descriptor::compute_inf_contents(){
                     ++block_size;
                 }
                 logX += block_size * log2(4) + log2(block_size + 1);
+                block_size = 0;
             }
             
             //3.) include mismatches
