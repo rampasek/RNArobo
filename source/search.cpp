@@ -458,10 +458,8 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
         __m128i R[se.num_mismatches + 1];
         __m128i tmp, ones, zero = {};
         ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
-        
-        //unsigned int mask_offset = patt_length >> 5;
-        uint32_t *p_newR = &((uint32_t*) &newR)[patt_length >> 5];
-        uint32_t patlen_mask = 1 << ((patt_length-1) & 31);
+        for(int i = 0; i < (128 - patt_length)/8; ++i) ones = _mm_slli_si128(ones, 1); //shift to proper position
+        for(int i = 0; i < (128 - patt_length)%8; ++i) bsl_m128(&ones); //shift to proper position
         
         for(int i = begin_reg.first; i < begin_reg.second+se.num_wc_padding.first; i += last){
             if(patt_length - 1 + i >= seq_length) break;
@@ -504,7 +502,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
                 
                 //if we have a suffix in the text that is a prefix of the pattern
                 //if( ((uint32_t*)&newR)[mask_offset] & patlen_mask ){ //getbit(&newR, patt_length-1)
-                if( *p_newR & patlen_mask ){
+                if( 0 > (int16_t)_mm_movemask_epi8(newR) ){
                     if(j>0){
                         last = j;
                     } else { //we have a complete match
@@ -598,12 +596,10 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
         int k = se.num_mismatches + se.num_insertions;
         __m128i newR, oldR;
         __m128i R[k + 1];
-        __m128i tmp, tmp2, one = {1,0}, zero = {};
+        __m128i tmp, tmp2, one = {}, zero = {};
         __m128i I = se.maskv[0], F = se.maskv[1], nF = se.maskv[2];
-        
-        //unsigned int mask_offset = patt_length >> 5;
-        uint32_t *p_Rk = &((uint32_t*) &R[k])[patt_length >> 5];
-        uint32_t patlen_mask = 1 << ((patt_length-1) & 31);
+        //set 1 at position that corresponds to the beginning of the pattern in the bit mask
+        ((uint32_t*)&one)[(uint32_t)(128 - patt_length) >> 5] |= 1 << ((uint32_t)(128 - patt_length) & 31);
         
         R[0] = zero;
         for(int x = 1; x <= k; ++x){
@@ -660,7 +656,7 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
 
             //if we have a match ending at seq[i]
             //if( ((uint32_t*) &R[k])[mask_offset] & patlen_mask){
-            if( *p_Rk & patlen_mask){
+                if( 0 > (int16_t)_mm_movemask_epi8(R[k]) ){
                 if(end_reg.first <= i+1 + se.num_wc_padding.second + se.num_insertions){
                     match_ends.push(i+1);
                 }

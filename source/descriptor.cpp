@@ -436,7 +436,8 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     //precompute se.maskv for forward filtering / backward search in BNDM
     int i = 0;
     while(i < patt_length) {
-        int pos_in_mask = (isFwdPattern) ? i : patt_length - 1 - i;
+        //use the upper bits in the mask (align to left), i.e 128 ... (128 - patt_length)
+        int pos_in_mask = (isFwdPattern) ? 128 - patt_length + i : 128 - 1 - i;
 
         //wild cards are admissible ONLY in forward filtering
         //NOTE: wildcards can't be a prefix or suffix of the stripped_pattern
@@ -445,8 +446,8 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
             int block_end = i;
             while(block_end<patt_length && se.stripped_pattern[block_end]=='*') ++block_end;
             
-            setbit(&I, i-1); //"gap-initial" state
-            setbit(&F, block_end); //"gap-final" state
+            setbit(&I, 128 - patt_length + i - 1); //"gap-initial" state
+            setbit(&F, 128 - patt_length + block_end); //"gap-final" state
             
             //set that every nucleotide matches a wild card
             for(int k=i; k<block_end; ++k){
@@ -456,7 +457,7 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
                         se.used[nuc] = 1;
                         se.maskv[nuc] = zero;
                     }
-                    setbit(&se.maskv[nuc], k);
+                    setbit(&se.maskv[nuc], 128 - patt_length + k);
                 }
             }
             i = block_end;
