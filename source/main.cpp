@@ -281,9 +281,9 @@ int main(int argc, char* argv[]){
     long long total_matches = 0;
     long long reported_matches = 0;
     
-    long long evalBases = 0;
-    unsigned int evalWindows = 0;
-    double opsPerBase = -1;
+    //long long evalBases = 0;
+    //unsigned int evalWindows = 0;
+    //double opsPerBase = -1;
     bool doSearch = true;
     
     while( get_valuable_line(dbin,line) && doSearch){
@@ -306,7 +306,7 @@ int main(int argc, char* argv[]){
         int max_motif_length = ssearch.desc->get_max_motif_length();
         //to how long pieces we will chop up the sequence
         int max_seq_length = max(3000, 20*max_motif_length);
-        if(ssearch.orderer->samplingSearchDone) max_seq_length = max(10000, 50*max_motif_length);
+        if(ssearch.orderer->isSearchDone()) max_seq_length = max(10000, 50*max_motif_length);
         
         //to store beginnings of found matches (in both strands) - for filtering repeating matches
         set <pair <unsigned int, unsigned int> > found_matches, found_op_matches;
@@ -461,7 +461,7 @@ int main(int argc, char* argv[]){
                 }
                 
                 //if order training is done, then evaluate the order on up to 100 windows
-                if(ssearch.orderer->samplingSearchDone && evalWindows < 101){
+                /*if(ssearch.orderer->isSearchDone() && evalWindows < 101){
                     evalBases += seq_partitions[j].first.size();
                     if(opt_searchcomp){ evalBases += seq_partitions[j].first.size(); }
                     
@@ -485,7 +485,7 @@ int main(int argc, char* argv[]){
                     }
                     
                     ++evalWindows;
-                }
+                }*/
                 
             }
 
@@ -496,7 +496,7 @@ int main(int argc, char* argv[]){
     }
     
     //print final messages
-    if(opt_tonly && !ssearch.orderer->samplingSearchDone){
+    if(opt_tonly && !ssearch.orderer->isSearchDone()){
         printf("\nWARNING! The database was not long enough to complete the training.\n\n");
     } else {
         printf("\n----- %s DONE -----\n", (opt_tonly?"TRAINING":"SEARCH"));
@@ -513,7 +513,7 @@ int main(int argc, char* argv[]){
            elapsed
           );
     printf("Final search order%s %s\n",
-           (opsPerBase==-1 ? "*:" : ": "),
+           (ssearch.orderer->isSearchDone() ? ": " : "*:"),
            ssearch.desc->search_order_to_str(ssearch.orderer->searchOrder).c_str()
           );
     /*printf("Est. difficulty:     ");

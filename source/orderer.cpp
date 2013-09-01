@@ -66,6 +66,9 @@ void Orderer::prepareKTuples(){
     for(int i=1;i<desc->sses.size();i++){
         if(!has[i]){
             elementsToOrder.push_back( i );
+            desc->sses[i].recordOps = true;
+        } else {
+            desc->sses[i].recordOps = false;
         }
     }
 
@@ -312,6 +315,7 @@ void Orderer::setNewSearchOrder(int seqSize){
             prepareKTuples();
         } else {
             samplingSearchDone = true;
+            for(int i=1;i<desc->sses.size();i++) desc->sses[i].recordOps = false;
             //cout<<"\nSAMPLING SEARCH DONE: "<<scannedWindows<<"\n\n";
             return;
         }

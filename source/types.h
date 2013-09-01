@@ -49,6 +49,7 @@ struct SSE{
     string stripped_complement; // as 'complement' but stripped of leading/trailing '*'
     interval num_wc_padding;    // number of leading/trailing '*' in original 'pattern'
     
+    bool recordOps;             //if true, measure the elapsed time spend by search for this element
     double infContent;          //estimated information content (relative entropy) of the SSE
 
     Matrix table;                   // n-dimensional sparse matrix for dynamic programming

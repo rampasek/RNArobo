@@ -33,7 +33,6 @@ class Orderer{
         vector<int> searchOrder;     // the ordered list of SSEs to be searched (indices to the vector "sses")
         vector< vector<double> > heuristicParams; //coefficients for combining heuristics to score
         bool doIterativeTraining;
-        bool samplingSearchDone;
         
         //stringstream fout;
         unsigned long long scannedWindows;
@@ -42,12 +41,14 @@ class Orderer{
         Orderer(){};
         Orderer(Descriptor &dsc, unsigned int k, unsigned int trainSL, int alphaID, bool doIT, vector< vector<double> > hParams);
         void setNewSearchOrder(int seqSize);
+        bool isSearchDone(){return samplingSearchDone;};
         
     private:
         Descriptor *desc;
         int currentSeqSize;
         unsigned int trainSetLimit;
         double *criticalValues;
+        bool samplingSearchDone;
         
         void prepareKTuples();
         int getTupleScore(vector<int> &tuple);
