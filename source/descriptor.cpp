@@ -433,7 +433,7 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     string ambig_codes = "NWSMKRYBDHV";
     
     ///PREPROCESSING
-    //precompute se.maskv for forward filtering / backward search in BNDM
+    ///precompute se.maskv for forward filtering / backward search in BNDM
     int i = 0;
     while(i < patt_length) {
         //use the upper bits in the mask (align to left), i.e 128 ... (128 - patt_length)
@@ -491,7 +491,7 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
         }
     }
     
-    //precompute bitwise negation of F
+    ///precompute bitwise negation of F
     for(int i=0; i<4; ++i) ((uint32_t*) &nF)[i] = ~((uint32_t*) &F)[i];
     // store I, F, ~F in se.maskv[0..2]
     assert(!se.used[0] && !se.used[1] && !se.used[2]);
@@ -500,7 +500,22 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     se.used[2] = 1, se.maskv[2] = nF; 
     //_mm_storeu_si128(&se.maskv[i], maskv[i]);
     
-    //"classes in text" - when searched sequence contains ambiguous IUPAC codes
+    ///precompute initial masks
+    //set 1 at position that corresponds to the beginning of the pattern in the bit mask
+    __m128i one = {};
+    setbit(&one, 128 - patt_length);
+    //set to 1^(patt_length)0^(128 - patt_length)
+    __m128i ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
+    for(int i = 0; i < (128 - patt_length)/8; ++i) //shift by bytes
+        ones = _mm_slli_si128(ones, 1); 
+    for(int i = 0; i < (128 - patt_length)%8; ++i) //shift by bits to the proper position
+        ones = _mm_or_si128(_mm_slli_epi64(ones, 1), _mm_srli_epi64(_mm_slli_si128(ones, 8), 63));
+    //store to se.maskv[3, 4]
+    assert(!se.used[3] && !se.used[4]);
+    se.used[3] = 1, se.maskv[3] = one;
+    se.used[4] = 1, se.maskv[4] = ones;
+    
+    ///"classes in text" - when searched sequence contains ambiguous IUPAC codes
     for(int i=0; i<ambig_codes.size(); ++i){ //initialize to zeros first
         se.used[(unsigned int)ambig_codes[i]] = 1;
         se.maskv[(unsigned int)ambig_codes[i]] = zero;

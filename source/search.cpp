@@ -406,12 +406,6 @@ inline bool getbit(void *v, int p) {
 //bitwise shift left on __m128i
 inline void bsl_m128(__m128i *v){
     *v = _mm_or_si128(_mm_slli_epi64(*v, 1), _mm_srli_epi64(_mm_slli_si128(*v, 8), 63));
-    /*
-    __m128i carry64 __attribute__((aligned(16))) = (__v2di){0,1};
-    int hibits = _mm_movemask_epi8(*v);
-    *v = _mm_slli_epi64(*v, 1);
-    if(hibits & 0x80) *v = _mm_or_si128(*v, carry64);
-    */
 }
 
 /* Run BNDM pattern search for @se.pattern in @seq. All occurrences must begin
@@ -456,10 +450,7 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
         int j, last;
         __m128i newR, oldR;
         __m128i R[se.num_mismatches + 1];
-        __m128i tmp, ones, zero = {};
-        ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
-        for(int i = 0; i < (128 - patt_length)/8; ++i) ones = _mm_slli_si128(ones, 1); //shift to proper position
-        for(int i = 0; i < (128 - patt_length)%8; ++i) bsl_m128(&ones); //shift to proper position
+        __m128i tmp, zero = {}, ones = se.maskv[4];
         
         for(int i = begin_reg.first; i < begin_reg.second+se.num_wc_padding.first; i += last){
             if(patt_length - 1 + i >= seq_length) break;
@@ -540,17 +531,8 @@ void Simple_Search::get_bndm_ss_matches(SSE &se, string &seq, interval &begin_re
     }
 }
 
-void subtract_m128(__m128i *a, __m128i *b, __m128i *res){
-    uint32_t *Z=((uint32_t*)res), *X=((uint32_t*)a), *Y=((uint32_t*)b);
-    uint32_t carry = 0;
-    for(int i=0; i<4; ++i){
-        Z[i] = X[i] - Y[i] - carry;
-        if(Z[i] > X[i] || (Y[i]==0xFFFFFFFF && carry==1)){
-            carry = 1;
-        } else {
-            carry = 0;
-        }
-    }
+inline void subtract_m128(__m128i *a, __m128i *b, __m128i *res){
+    *res = _mm_sub_epi64(_mm_sub_epi64(*a, *b), _mm_sub_epi64(_mm_loadl_epi64(a), _mm_loadl_epi64(b)));
 }
 
 /* Run bit-parallel forward scan filtering for @se.stripped_pattern in @seq. Uses DP algorithms to
@@ -596,10 +578,8 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
         int k = se.num_mismatches + se.num_insertions;
         __m128i newR, oldR;
         __m128i R[k + 1];
-        __m128i tmp, tmp2, one = {}, zero = {};
-        __m128i I = se.maskv[0], F = se.maskv[1], nF = se.maskv[2];
-        //set 1 at position that corresponds to the beginning of the pattern in the bit mask
-        ((uint32_t*)&one)[(uint32_t)(128 - patt_length) >> 5] |= 1 << ((uint32_t)(128 - patt_length) & 31);
+        __m128i tmp, tmp2, zero = {};
+        __m128i I = se.maskv[0], F = se.maskv[1], nF = se.maskv[2], one = se.maskv[3];
         
         R[0] = zero;
         for(int x = 1; x <= k; ++x){
