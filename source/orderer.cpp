@@ -359,10 +359,10 @@ bool Orderer::storeKTupleStats(int tupleID){
         allOps += desc->sses[ tupleStats[tupleID].tuple[i] ].table.ops();
     }
     
-    /*//all ops for this tuple + the rest of the search order
+    //all ops for this tuple + the rest of the search order
     for(int i=fixedOrder.size(); i < searchOrder.size(); ++i){
         allOps += desc->sses[ searchOrder[i] ].table.ops();
-    }*/
+    }
 
     tupleStats[tupleID].basesScanned += currentSeqSize;
     
