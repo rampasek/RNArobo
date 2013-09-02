@@ -23,7 +23,7 @@ using namespace std;
 using namespace GF;
 
 #ifndef RELEASE
-    #define DEF_RELEASE     "2.1.0 RC2"
+    #define DEF_RELEASE     "2.1.0"
     #define DEF_RELEASEDATE "August 2013"
 #endif
 

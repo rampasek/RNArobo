@@ -148,7 +148,8 @@ bool Descriptor::parse_desc_properties(string line){
     if( it==transl.end() ) return false; //if it is unknown
     first_char_in_name=item[0];
     sses[it->second].name=item;
-
+    sses[it->second].recordOps=false;
+    
     if( sses[it->second].is_helix){ //if sse is helix
         //get number of tolerated mismatches, mispairings and insertions
         if(! (sin>>item)) return false; //cout<<item<<endl;
