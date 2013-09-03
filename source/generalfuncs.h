@@ -151,59 +151,65 @@ inline bool is_complemntary(char &ch_s1, char &ch_s2, string &transf_matrix){
     return false;
 }
 
+// make complement of the given char
+inline void in_place_complement(string::iterator i) {
+    switch (*i){
+        case 'A':
+            *i = 'T';
+            break;
+        case 'C':
+            *i = 'G';
+            break;
+        case 'G':
+            *i = 'C';
+            break;
+        case 'T':
+            *i = 'A';
+            break;
+        case 'N':
+            //N doesn't change
+            break;
+        case 'M': //aMino
+            *i = 'K';
+            break;
+        case 'R': //puRine
+            *i = 'Y';
+            break;
+        case 'W': //Weak
+            *i = 'S';
+            break;
+        case 'S': //Strong
+            *i = 'W';
+            break;
+        case 'Y': //pYrimidine
+            *i = 'R';
+            break;
+        case 'K': //Keto
+            *i = 'M';
+            break;
+        case 'V': //not T
+            *i = 'T';
+            break;
+        case 'H': //not G
+            *i = 'G';
+            break;
+        case 'D': //not C
+            *i = 'C';
+            break;
+        case 'B': //not A
+            *i = 'A';
+            break;
+    }
+}
+
 // reverse and make complement of the given substring
 inline void reverse_complement(string::iterator begin, string::iterator end) {
-    reverse(begin, end);
-
-    for(string::iterator i=begin; i!=end; ++i) {
-        switch (*i){
-            case 'A':
-                *i = 'T';
-                break;
-            case 'C':
-                *i = 'G';
-                break;
-            case 'G':
-                *i = 'C';
-                break;
-            case 'T':
-                *i = 'A';
-                break;
-            case 'N':
-                //N doesn't change
-                break;
-            case 'M': //aMino
-                *i = 'K';
-                break;
-            case 'R': //puRine
-                *i = 'Y';
-                break;
-            case 'W': //Weak
-                *i = 'S';
-                break;
-            case 'S': //Strong
-                *i = 'W';
-                break;
-            case 'Y': //pYrimidine
-                *i = 'R';
-                break;
-            case 'K': //Keto
-                *i = 'M';
-                break;
-            case 'V': //not T
-                *i = 'T';
-                break;
-            case 'H': //not G
-                *i = 'G';
-                break;
-            case 'D': //not C
-                *i = 'C';
-                break;
-            case 'B': //not A
-                *i = 'A';
-                break;
-        }
+    while ((begin != end) && (begin != end-1)) {
+        in_place_complement(begin);
+        in_place_complement(--end);
+        std::swap(*begin++, *end);
     }
+    if(begin != end) in_place_complement(begin); //negate the middle nucleotide
 }
 
 // filter out all whitespaces from the given string @s
@@ -212,11 +218,13 @@ inline void filter_whitespaces(string &s){
     unsigned int last = 0;
     unsigned int i = 0;
     unsigned int size = s.size();
-    tmp.reserve(size);
+    //tmp.reserve(size);
     
     while(i<size){
         while(i<size && !isspace(s[i])) ++i;
+        if(i==size && last==0) return; //no whitespaces in s
         tmp += s.substr(last, i-last);
+        
         while(i<size && isspace(s[i])) ++i;
         last = i;
     }
