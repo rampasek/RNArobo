@@ -198,8 +198,8 @@ int main(int argc, char* argv[]){
     bool param_iterative = true;
     vector< vector<double> > params(3);
     double IC_H = 1;
-    double IC_SS = 2;
-    double DF = -0.3;
+    double IC_SS = 3;
+    double DF = -0.2;
     
     //override default parameters by the user-defined
     if(opt_k != -1) param_k = opt_k;

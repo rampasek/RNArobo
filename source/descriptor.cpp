@@ -417,6 +417,7 @@ inline void setbit(void *v, int p) {
 void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     int patt_length=se.stripped_pattern.size();
     assert(patt_length <= 128);
+    if(patt_length == 0) return;
     int j;
     __m128i zero = {};
     
@@ -525,7 +526,7 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     for(int i=0; i<4; ++i){
         unsigned int nuc = "ACGT"[i];
         for (j=0; j<7; ++j){
-            se.maskv[(unsigned int)iupac[i][j]] |= se.maskv[nuc];
+            if(se.used[nuc]) se.maskv[(unsigned int)iupac[i][j]] |= se.maskv[nuc];
         }
     }
 }

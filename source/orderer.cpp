@@ -177,7 +177,7 @@ int Orderer::getTupleScore(vector<int> &tuple){
         int domainFlexibility = calculateDomainFlexibility(alreadyFixed, tuple[i]);
         if( desc->sses[tuple[i]].is_helix ){
             int secondStrandFlex = calculateDomainFlexibility(alreadyFixed, -tuple[i]);
-            domainFlexibility = domainFlexibility * secondStrandFlex;
+            domainFlexibility = max(domainFlexibility, secondStrandFlex);
         }
         
         alreadyFixed[tuple[i]] = true;
@@ -199,25 +199,22 @@ int Orderer::getTupleScore(vector<int> &tuple){
     return (int)round(tupleScore);
 }
 
-///calculate approximate flexibility of the sse's search domain size
-///(if helix, then only of the first strand, "-element" means second strand)
+///calculate approximate upper bound on sse's search domain
 int Orderer::calculateDomainFlexibility(vector<bool> &fixed, int elementID){
     int index_in_motif = -1;
     for(int i=0;i<desc->motif.size();i++) {
-        if( elementID == desc->motif[i]) index_in_motif = i;
+        if(desc->motif[i] == elementID) index_in_motif = i;
     }
     
     //find left boundaries
-    int left_search_bound = -1;
-    int left_ncover_bound = -1;
+    int left_flexibility = 0;
     int min_left_shift = 0;
     int max_left_shift = 0;
     bool fixed_left = false;
     for(int i=index_in_motif-1;i>=0;i--){
         //if this motif element is fixed by the time sseID is search for (or it's the other strand)
-        if(fixed[abs(i)] || (desc->sses[abs(elementID)].is_helix && desc->motif[i] == -elementID)){
-            left_search_bound = min_left_shift;
-            left_ncover_bound = max_left_shift;
+        if(fixed[abs(desc->motif[i])] || (desc->sses[abs(elementID)].is_helix && desc->motif[i] == -elementID)){
+            left_flexibility = max_left_shift - min_left_shift;
             fixed_left = true;
             break;
         } else {
@@ -225,19 +222,16 @@ int Orderer::calculateDomainFlexibility(vector<bool> &fixed, int elementID){
             max_left_shift += desc->sses[ abs(desc->motif[i]) ].size_range.second; //maximum of size of the sse
         }
     }
-    if(left_search_bound == -1) left_search_bound = min_left_shift;
-        
+    
     //find right boundaries
-    int right_search_bound = -1;
-    int right_ncover_bound = -1;
+    int right_flexibility = 0;
     int min_right_shift = 0;
     int max_right_shift = 0;
     bool fixed_right = false;
     for(int i=index_in_motif+1;i<desc->motif.size();i++){
         //if this motif element is fixed by the time sseID is search for (or it's the other strand)
-        if(fixed[abs(i)] || (desc->sses[abs(elementID)].is_helix && desc->motif[i] == -elementID)){
-            right_ncover_bound = max_left_shift + desc->sses[abs(elementID)].size_range.second;
-            right_search_bound -= right_ncover_bound - min_right_shift;
+        if(fixed[abs(desc->motif[i])] || (desc->sses[abs(elementID)].is_helix && desc->motif[i] == -elementID)){
+            right_flexibility = max_right_shift - min_right_shift;
             fixed_right = true;
             break;
         } else {
@@ -245,23 +239,20 @@ int Orderer::calculateDomainFlexibility(vector<bool> &fixed, int elementID){
             max_right_shift += desc->sses[ abs(desc->motif[i]) ].size_range.second; //maximum of size of the sse
         }
     }
-    if(right_search_bound == -1) right_search_bound = desc->sses[abs(elementID)].size_range.second - min_right_shift;
     
-    ///combine search interval, necessary-to-cover interval and minimal size of the element to obtain the *search domain*
-    int lower_begin_bound = left_search_bound;
-    //if an occurrence is already fixed at the right side, then this element must begin so that the gap between these two
-    // elements could be (at least theoretically) filled in by the elmenets inbetween them
-    if(fixed_right) lower_begin_bound = max(left_search_bound,
-        right_ncover_bound - desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.second);
+    //int elementFlexibility = desc->sses[abs(elementID)].size_range.second - desc->sses[abs(elementID)].size_range.first;
+    /*for(int i=0;i<desc->motif.size();i++) {
+        cout<<desc->sses[abs(desc->motif[i])].name;
+        if( elementID == desc->motif[i]) cout<<"X ";
+        else if( fixed[abs(desc->motif[i])] ) cout<<"F ";
+        else cout<<"O ";
+    }
+    cout<<"    "; //<<left_flexibility + right_flexibility + elementFlexibility<<endl;
+    */
     
-    //int upper_begin_bound = max(left_search_bound+1, right_search_bound - desc->sses[ abs(desc->motif[index_in_motif]) ].size_range.first);
-    int upper_begin_bound = max(left_search_bound+1, right_search_bound+1);
-    //if necessary cover interval beginning is defined then a match must start at/before it
-    if(fixed_left) upper_begin_bound = min(left_ncover_bound+1, upper_begin_bound);
-    
-    return max(1, upper_begin_bound - lower_begin_bound);
+    if(fixed_left && fixed_right) return min(left_flexibility, right_flexibility);
+    else return max(left_flexibility, right_flexibility);
 }
-
 
 ///process the current k-tuple, then choose a new one + augment it to a complete ordering
 void Orderer::setNewSearchOrder(int seqSize){
