@@ -41,7 +41,7 @@ Usage: rnarobo [OPTIONS] <descriptor-file> <sequence-file>\n\
      --nratio FLOAT  set max allowed \"N\"s ratio in reported occurrences\n\
      \n\
   To override default search order training parameters:\n\
-  (defaults: --k 3 --limit 40 --alpha 0.025 --iterative TRUE )\n\
+  (defaults: --k 3 --limit 50 --alpha 0.01 --iterative TRUE )\n\
     --k INT            set length of tuples used in training\n\
     --limit INT        set max size of training set (max num of tuples)\n\
     --alpha FLOAT      set significance level for statistic tests,\n\
@@ -193,8 +193,8 @@ int main(int argc, char* argv[]){
     
     //default parameters for Orderer
     unsigned int param_k = 3;
-    unsigned int param_limit = opt_tonly?60:40;
-    unsigned int param_alpha = opt_tonly?3:3;
+    unsigned int param_limit = opt_tonly?60:50;
+    unsigned int param_alpha = opt_tonly?4:4;
     bool param_iterative = true;
     vector< vector<double> > params(3);
     double IC_H = 1;

@@ -83,7 +83,7 @@ double criticalValuesAt99[102] = { -1,
 
 /** 
  * Welch Two Sample t-test
- * (performs the upper, one-sided test)
+ * (performs the upper, two-tailed test)
  * 
  * args:
  * unpaired samples @x and @y with possibly different variance

@@ -130,7 +130,7 @@ void Orderer::prepareKTuples(){
     sort(allTuples.begin(), allTuples.end());
 
     int bestScore = allTuples.back().first;
-    int scoreLimit = (int)(bestScore*.85); //TODO: evaluate the best cut-off percentage
+    int scoreLimit = (int)(bestScore*.85);
     
     struct TupleStats tmpStats;
     tmpStats.heuristicScore = 0;
@@ -397,8 +397,8 @@ void Orderer::eliminateAgainstKTuple(int tupleID){
                     eliminated.push_back(tupleID);
                     eliminateSelf = true;
                 } else if(!eliminateSelf &&
-                         tupleStats[*it].sampledOpsPerWindow.size() > 100 &&
-                         tupleStats[tupleID].sampledOpsPerWindow.size() > 100
+                         tupleStats[*it].sampledOpsPerWindow.size() > 75 &&
+                         tupleStats[tupleID].sampledOpsPerWindow.size() > 75
                         ) //break tie between these tuples
                 {
                     double sum1=0;
