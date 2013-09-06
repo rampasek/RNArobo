@@ -260,7 +260,7 @@ void Simple_Search::find_motif(int ind, string &seq, intervals &grid){
         }
     }
     //cout<<getCPUTime() - se_start_t<<" ";
-    if(se.recordOps) se.table.incOpsCounter(getCPUTime() - se_start_t);
+    if(se.recordOps) se.incOpsCounter(getCPUTime() - se_start_t);
     
     list<interval> match = get_next_match(se);
 

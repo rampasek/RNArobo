@@ -135,7 +135,6 @@ void Orderer::prepareKTuples(){
     struct TupleStats tmpStats;
     tmpStats.heuristicScore = 0;
     tmpStats.memOps.resize(K);
-    tmpStats.basesScanned = 0;
     for(int i = allTuples.size()-1; i>-1 && allTuples[i].first >= scoreLimit && tupleStats.size() < trainSetLimit; i--){
         tmpStats.tuple = allTuples[i].second;
         tmpStats.heuristicScore = allTuples[i].first;
@@ -318,7 +317,7 @@ void Orderer::setNewSearchOrder(int seqSize){
 
     //reset Ops counters for all elements
     for(int i=1; i<desc->sses.size(); i++){
-        desc->sses[i].table.resetOpsCounter();
+        desc->sses[i].resetOpsCounter();
     }
 
     //test sampling
@@ -344,25 +343,23 @@ void Orderer::setNewSearchOrder(int seqSize){
 bool Orderer::storeKTupleStats(int tupleID){
     if (tupleID == -1 ) return false;
     
-    unsigned long long allOps = 0;
+    unsigned long long opsCount = 0;
+    /*//ops only for the tuple
     for(int i=0; i < tupleStats[tupleID].tuple.size(); ++i){
-        //tupleStats[tupleID].memOps[i] += desc->sses[ tupleStats[tupleID].tuple[i] ].table.ops();
-        allOps += desc->sses[ tupleStats[tupleID].tuple[i] ].table.ops();
-    }
+        opsCount += desc->sses[ tupleStats[tupleID].tuple[i] ].getOpsCount();
+    }*/
     
     //all ops for this tuple + the rest of the search order
     for(int i=fixedOrder.size(); i < searchOrder.size(); ++i){
-        allOps += desc->sses[ searchOrder[i] ].table.ops();
+        opsCount += desc->sses[ searchOrder[i] ].getOpsCount();
     }
-
-    tupleStats[tupleID].basesScanned += currentSeqSize;
     
     //don't add if the search didn't make it so far in the search order (the tuple wasn't searched)
-    if(allOps <= 0){
+    if(opsCount <= 0){
         return false;
     }
     
-    tupleStats[tupleID].sampledOpsPerWindow.push_back(allOps/double(currentSeqSize));
+    tupleStats[tupleID].sampledOpsPerWindow.push_back(opsCount/double(currentSeqSize));
     
     return true;
 }

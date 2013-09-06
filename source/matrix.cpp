@@ -8,8 +8,6 @@
  */
 
 #include <vector>
-//#include <cstdarg>
-//#include <cstdio>
 #include <set>
 #include <tr1/array>
 #include <cstring>
@@ -21,7 +19,6 @@ using namespace std;
 //get value of a cell specified by given key of type vector<int>
 bool Matrix::get(tr1::array<unsigned int, 7> &key){
     //if(key.size()!=num_dimensions) return 0;
-    //++access_counter;
     
     unsigned long long int x = 0;
     for(int i=0;i<3;i++){
@@ -41,7 +38,6 @@ bool Matrix::get(tr1::array<unsigned int, 7> &key){
 //set value of a cell specified by given key of type vector<int>
 void Matrix::set(tr1::array<unsigned int, 7> &key){
     //if(key.size()!=num_dimensions) return;
-    //++access_counter;
     
     unsigned long long int x = 0;
     for(int i=0;i<3;i++){

@@ -49,9 +49,10 @@ struct SSE{
     string stripped_complement; // as 'complement' but stripped of leading/trailing '*'
     interval num_wc_padding;    // number of leading/trailing '*' in original 'pattern'
     
-    bool recordOps;             //if true, measure the elapsed time spend by search for this element
     double infContent;          //estimated information content (relative entropy) of the SSE
-
+    bool recordOps;             //if true, measure the elapsed time spend by search for this element
+    ull ops_counter;            //time/ops counter for DDEO
+    
     Matrix table;                   // n-dimensional sparse matrix for dynamic programming
     set<interval> occurrences;  // whether on given position(s) ends a match
     queue<interval> match_buffer;   // buffer for unprocessed matches (in a domain)
@@ -61,8 +62,13 @@ struct SSE{
     __m128i *maskv;             //precomputed "pattern" table for BNDM
     uint8_t used[256];
     
-    SSE() : maskv(NULL) {}
-    ~SSE() {aligned_free(maskv);}
+    SSE() : ops_counter(0ULL), maskv(NULL) {}
+    ~SSE() { aligned_free(maskv); }
+    
+    ull getOpsCount() { return ops_counter; }
+    void incOpsCounter() { ++ops_counter; }
+    void incOpsCounter(ull c) { ops_counter+=c; }
+    void resetOpsCounter() { ops_counter=0; }
 };
 
 // a structure to keep empirical data gathered for a K-elements reorder
@@ -72,7 +78,6 @@ struct TupleStats{
     
     vector<double> sampledOpsPerWindow;
     vector<unsigned long long> memOps;
-    unsigned long long basesScanned;
 };
 
 #endif
