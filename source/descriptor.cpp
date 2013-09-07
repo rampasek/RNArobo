@@ -422,7 +422,7 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     __m128i zero = {};
     
     se.maskv = (__m128i*)aligned_malloc(256 * sizeof(__m128i), 16);
-    __m128i I = {}, F = {}, nF = {};
+    __m128i I = {}, F = {}, nF = {}, one = {}, ones = {};
     
     for(int i=0; i<256; ++i) se.used[i] = 0;
 
@@ -504,14 +504,15 @@ void Descriptor::compile_pattern(SSE &se, bool isFwdPattern){
     
     ///precompute initial masks
     //set 1 at position that corresponds to the beginning of the pattern in the bit mask
-    __m128i one = {};
-    setbit(&one, 128 - patt_length);
+    setbit(&one, (128 - patt_length));
+    
     //set to 1^(patt_length)0^(128 - patt_length)
-    __m128i ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
+    ones = _mm_set_epi32(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF); //initialize to all ones
     for(int i = 0; i < (128 - patt_length)/8; ++i) //shift by bytes
         ones = _mm_slli_si128(ones, 1); 
     for(int i = 0; i < (128 - patt_length)%8; ++i) //shift by bits to the proper position
         ones = _mm_or_si128(_mm_slli_epi64(ones, 1), _mm_srli_epi64(_mm_slli_si128(ones, 8), 63));
+    
     //store to se.maskv[3, 4]
     assert(!se.used[3] && !se.used[4]);
     se.used[3] = 1, se.maskv[3] = one;

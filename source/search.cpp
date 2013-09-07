@@ -636,13 +636,13 @@ void Simple_Search::run_fwd_ss_filter(SSE &se, string &seq, interval &begin_reg,
 
             //if we have a match ending at seq[i]
             //if( ((uint32_t*) &R[k])[mask_offset] & patlen_mask){
-                if( 0 > (int16_t)_mm_movemask_epi8(R[k]) ){
+            if( 0 > (int16_t)_mm_movemask_epi8(R[k]) ){
                 if(end_reg.first <= i+1 + se.num_wc_padding.second + se.num_insertions){
                     match_ends.push(i+1);
                 }
                 #ifdef DEBUG
-                    uint32_t *Z = ((uint32_t*) &R[k]);
-                    cout<<i<<" "<<(Z[0]&8)<<(Z[0]&4)<<(Z[0]&2)<<(Z[0]&1)<<endl;
+                    //uint32_t *Z = ((uint32_t*) &R[k]);
+                    //cout<<i<<" "<<(Z[0]&8)<<(Z[0]&4)<<(Z[0]&2)<<(Z[0]&1)<<endl;
                     cout<<se.id<<" found ending(fwd scan) at "<<i+1<<endl;
                 #endif
             }
@@ -1587,12 +1587,12 @@ list<interval> Simple_Search::get_next_match(SSE &se){
     #ifdef DEBUG
         cout<<"match: "<<se.id<<": ";
         cout<<new_match.front().first<<" to "<<new_match.front().second<<": ";
-        if(new_match.front().first != -1)
-            //cout<<seq.substr(new_match.front().first,new_match.front().second-new_match.front().first)<<"   ";
+        //if(new_match.front().first != -1)
+        //    cout<<seq.substr(new_match.front().first,new_match.front().second-new_match.front().first)<<"   ";
         if(new_match.size()==2){
             cout<<new_match.back().first<<" to "<<new_match.back().second<<": ";
-            if(new_match.front().first != -1)
-                //cout<<seq.substr(new_match.back().first,new_match.back().second-new_match.back().first)<<"   ";
+            //if(new_match.front().first != -1)
+            //    cout<<seq.substr(new_match.back().first,new_match.back().second-new_match.back().first)<<"   ";
         }
     #endif
     return new_match;
