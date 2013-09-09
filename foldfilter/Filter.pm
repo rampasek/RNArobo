@@ -38,8 +38,9 @@ sub runRNAfold {
     my $noPS = "-noPS";
     $noPS = "--noPS" if $useViennaRNA2;
     my @viennaResult = split " ", `echo $seq| RNAfold $noPS`;
-    if ( $? == -1 ){
-        print "Calling RNAfold failed: $!\n";
+    if ( $? != 0 ){
+        die "Calling RNAfold failed: $!\n".
+            "! CHECK IF ViennaRNA IS PROPERLY INSTALLED !\n";
     }
     
     my $structure = $viennaResult[1];
@@ -59,9 +60,9 @@ sub runRNAcofold {
     my $noPS = "-noPS";
     $noPS = "--noPS" if $useViennaRNA2;
     my @viennaResult = split " ", `echo $seq| RNAcofold $noPS`;
-    if ( $? == -1 ){
-        print "Calling RNAcofold failed: $!\n";
-        print "on input: $seq\n";
+    if ( $? != 0 ){
+        die "Calling RNAcofold failed: $!\n  input passed: $seq\n".
+            "! CHECK IF ViennaRNA IS PROPERLY INSTALLED !\n";
     }
     
     my $structure = $viennaResult[1];
@@ -643,13 +644,15 @@ sub clusterROIs{
   close(AA_FILE);
   
   system("./$uclustBinary --quiet --input $aaFileName --uc $resUCFileName --id 0.60 --maxaccepts 0 --maxrejects 0");
-  if ( $? == -1 ){
-      print "command failed: $!\n";
+  if ( $? != 0 ){
+      die "Calling UClust failed: $!\n".
+          "! CHECK IF UClust IS PROPERLY INSTALLED !\n";
   }
   
   system("./$uclustBinary --quiet --uc2fasta $resUCFileName --input $aaFileName --output $resFAFileName");
-  if ( $? == -1 ){
-      print "command failed: $!\n";
+  if ( $? != 0 ){
+      die "Calling UClust failed: $!\n".
+          "! CHECK IF UClust IS PROPERLY INSTALLED !\n";
   }
   
   unlink($aaFileName);

@@ -83,9 +83,9 @@ Available options:
               
               
 -p          show progress during computational steps
-
---vienna2   use this option for compatibility with ViennaRNA version 2.0.0+
-
+".
+#--vienna2   use this option for compatibility with ViennaRNA version 2.0.0+
+"
 -h, --help  show this help
 
 
@@ -129,7 +129,7 @@ GetOptions( 'score' => \$showScores,
             'clusters=s' => \$clusterResFAFileName,
             'minsize=i' => \$sizeThreshold,
             'minspecies=i' => \$spiecesThreshold,
-            'vienna2' => \$useViennaRNA2,
+            #'vienna2' => \$useViennaRNA2,
             'help' => \$showHelp ) 
       || die $USAGE;
       
@@ -143,8 +143,15 @@ if (defined $2 and $2 eq "%"){
       if $cutoffScore >100 or $cutoffScore <0;
 }
 
+#find out which version of ViennaRNA package is installed ( >= 2.0.0 or <)
+#if the return value is != 0, then ViennaRNA is not installed or the version is < 2.0.0
 $Filter::useViennaRNA2 = $useViennaRNA2;
-
+my $viennaVersion = `RNAcofold --version 2> /dev/null`;
+if ( $? == 0 ){ 
+    $useViennaRNA2 = 1;
+    $Filter::useViennaRNA2 = $useViennaRNA2;
+}
+    
 $Filter::showProgress = $showProgress;
 if ($showProgress){
     print STDERR "-------- Starting Fold Filter --------\n\n";
