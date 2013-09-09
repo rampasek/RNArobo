@@ -24,7 +24,7 @@ using namespace GF;
 
 #ifndef RELEASE
     #define DEF_RELEASE     "2.1.0"
-    #define DEF_RELEASEDATE "August 2013"
+    #define DEF_RELEASEDATE "September 2013"
 #endif
 
 
@@ -35,10 +35,10 @@ Usage: rnarobo [OPTIONS] <descriptor-file> <sequence-file>\n\
 \n\
   Available options: \n\
      -c              search both strands of database\n\
-     -u              reported only non-overlapping occurrences\n\
+     -u              report only non-overlapping occurrences\n\
      -f              print output in plain FASTA format\n\
      -s              print output in FASTA format with element separators\n\
-     --nratio FLOAT  set max allowed \"N\"s ratio in reported occurrences\n\
+     --nratio FLOAT  set max allowed ratio of \"N\"s in occurrences to report\n\
      \n\
   To override default search order training parameters:\n\
   (defaults: --k 3 --limit 50 --alpha 0.01 --iterative TRUE )\n\
