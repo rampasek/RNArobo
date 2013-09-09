@@ -15,10 +15,12 @@
 \usepackage[english]{babel}
 \usepackage[IL2]{fontenc}
 \usepackage[utf8]{inputenc}
+\usepackage[none]{hyphenat}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{enumitem}
 
 \usepackage{ifpdf}
 \ifpdf
@@ -40,67 +42,130 @@
 \begin{document} %%%% samotny dokument zacina tu %%%%
 \bibliographystyle{plainnat}
 
-\begin{center} \section*{RNArobo 1.9 -- Quick Start Guide} \end{center}
+\begin{center}
+\section*{RNArobo 2.1.0 -- Quick Start Guide}
+\today
+\end{center}
 
-RNArobo is an RNA structural motif search tool. RNArobo can search sequence databases in FASTA format for a motif defined by a `descriptor', which can specify primary and secondary structure constraints.
+RNArobo is a fast RNA structural motif search tool. RNArobo can search sequence databases in FASTA format for a motif defined by a ``descriptor'', which can specify primary and secondary structure constraints.
 
-The format of an RNArobo descriptor is an extension of the descriptor format used by RNABob (a search tool by \citet{eddy1996}), so that RNABob descriptors are compatible with RNArobo. The command line options of RNArobo are also similar to those of RNABob.
+The format of an RNArobo descriptor is an extension of the descriptor format used by RNABob (a search tool by \citet{eddy1996}), thus RNABob descriptors are compatible with RNArobo. A descriptor consists of three parts:
+\begin{enumerate}
+\item a \textbf{motif map} -- a list of individual \emph{structural elements}
+  ordered from 5' to 3' end along the sequence
+\item a detailed \textbf{specification} of each structural element
+\item an optional \emph{search order}
+\end{enumerate}
+Each structural element is either single stranded (denoted by \texttt{s}) or helical (denoted by \texttt{h} or \texttt{r}). Detailed specification of each element consists of (the fields in bold are \textbf{mandatory}, while fields in italic are \emph{optional}):
+\begin{enumerate}
+\item number of \textbf{mismatches} allowed (in helical elements mismatches are allowed only in the positive strand)
+\item[(1b.)] number of \textbf{mispairs} allowed (for helical elements only)
+\item number of \emph{insertions} allowed
+\item \textbf{primary sequence} constraints: a string composed of IUPAC codes and wild cards ``\texttt{*}'' that allow to match any character or to be skipped; alternatively, an abbreviation for e.g. 10 wild cards can be written as ``\texttt{[10]}''
+\item[(3b.)] primary \textbf{sequence constraints} for the \textbf{negative strand} of a helical element; in helical elements wild cards can occur only in pairs, i.e. for every wild card there must be a corresponding wild card in the other strand at the exactly opposite position
+\item IUPAC code for \emph{allowed insertions}
+\item[(5.)] a \textbf{transformation} string specifying pairings allowed in the \emph{relational} element \texttt{r} 
+\end{enumerate}
 
-Unlike RNABob, RNArobo enables you to allow nucleotide insertions in a structural element. Syntax of allowing insertions is similar to specification of the maximal number of mismatches (or mispairs). You can specify the maximal number of insertions and what nucleotides are allowed as an insertion. Insertions are not allowed at the very beginning and end of the matched regions and in a helix insertions must not be adjacent nor opposite. Usage should be clear from the example descriptor:
-
+\section*{Example Descriptors}
+See the following simple motif composed of two elements -- a helix \texttt{h1} and a single strand \texttt{s1}:
 \begin{quote}
-h1 s1 h1'\\
-h1 0:0\textbf{:2} NNN**CC:GG**NNN\textbf{:A}\\
-s1 0\textbf{:1} ACT\textbf{:R} \\
-\textbf{R s1 h1}
+$\overbrace{\texttt{h1 s1 h1'}}^{\text{motif map}}$\\
+\texttt{h1} $\overbrace{\texttt{1}}^{\text{\# mismatches}}$ \texttt{:} $\overbrace{\texttt{0}}^{\text{\# mispairs}}$ ~
+$\overbrace{\texttt{NNN**CC}}^{\text{positive strand}}$\texttt{:}
+$\overbrace{\texttt{GG**NNN}}^{\text{negative strand}}$ \\
 
-This motif is composed of two elements -- one helix and one single strand. In the helix we allow up to 2 insertions of Adenosine, while in the single strand only one insertion of a purine nucleotide is allowed (`R' stands for Guanine or Adenosine).
+\texttt{s1} $\overbrace{\texttt{0}}^{\text{\# mismatches}}$ ~~
+$\overbrace{\texttt{ACCRNNT}}^{\text{sequence constraint}}$
+
 \end{quote}
 
-The last line of the example descriptor above illustrates usage of an optional reorder command which specifies the order in
-which elements are internally searched by the RNArobo algorithm, similarly to RNAMot \citep{gautheret1990}. If this command is absent or does not contain all elements,
-it is automatically supplemented by all remaining elements in order calculated by an unsophisticated heuristic which prefers longer elements with fewer wild cards. This command has no impact on the results of the search, but specifying 'good' order can speed up the search. The goal is to search first for the most specific elements of the motif, while leaving the loose elements to be searched at the end.  
+Unlike RNABob, RNArobo enables you to allow nucleotide insertions in a structural element. Syntax of allowing insertions is similar to specification of the maximal number of mismatches (or mispairs). You can specify the maximal number of insertions and what nucleotides are allowed as an insertion. To specify the nucleotide constraints, you can use IUPAC code as for any other primary sequence constraints.  Insertions are not allowed at the very beginning and end of the matched regions and in a helix insertions must not be adjacent nor opposite. Usage should be clear from the example descriptor:
 
+\begin{quote}
+\texttt{h1 s1 h1'}\\
+\texttt{h1 0:0\textbf{:2} ~NNN**CC:GG**NNN\textbf{:A}}\\
+\texttt{s1 0\textbf{:1} ~~~ACCRNNT\textbf{:Y}}
+
+In the helix we allow up to 2 insertions of Adenosine, while in the single strand only one insertion of a pyrimidine nucleotide is allowed (`\texttt{Y}' stands for Cytosine or Thymine/Uracil). 
+\end{quote}
+
+Note, RNArobo doesn't discriminate Thymine and Uracil, you can use them interchangeably in both the descriptor and searched FASTA sequence.
+
+To specify custom pairing function for a helical element, you can use an \emph{relational} element instead for standard helix, e.g.:
+\begin{quote}
+\texttt{r1 s1 r1'}\\
+\texttt{r1 0:0:2 ~NNN**CC:GG**NNN:A ~TGCA}\\
+\texttt{s1 0\textbf{:1} ~~~ACCRNNT:Y} \\
+\texttt{\textbf{R s1 h1}}
+
+This variation of the previous descriptor allows only canonical base-pairs \texttt{A-T} and \texttt{C-G} in the relational element \texttt{r1}. The individual IUPAC codes in the \emph{transformation} string \texttt{TGCA} define nucleotides that can pair with \texttt{A}, \texttt{C}, \texttt{G}, and \texttt{T}, respectively in this order. For default helical elements (e.g. \texttt{h1}) RNArobo allows also Watson-Crick base pairs, as the default \emph{transformation} string is \texttt{TGYR}.
+\end{quote}
+
+(\textbf{Optional}) The last line of the example descriptor above illustrates usage of an optional reorder command which specifies the order in which elements are internally searched by the RNArobo algorithm, similarly to RNAMot \citep{gautheret1990}. If this command is absent or does not contain all elements, an automatic data-driven method is used to determine the best possible ordering of all remaining elements. This command has no principal impact on the actual results of the search, but defining a previously trained order can speed up the search by few seconds.
+
+\section*{Installation / Usage}
 To run RNArobo on your system, you need GCC C++ compiler (tested with version 4.4.5) or for 64-bit Linux systems we directly provide an executable binary.
 
-
 \begin{enumerate}
-\item \textbf{Download} the most recent version of RNArobo at \url{http://compbio.fmph.uniba.sk/rnarobo}. There you can download the executable binary for 64-bit Linux systems as well as the source code package. 
+\item[\textbf{1.}] \textbf{Download} the most recent version of RNArobo at \url{http://compbio.fmph.uniba.sk/rnarobo}. There you can download the executable binary for 64-bit Linux systems as well as the source code package. 
 
-\item[2a.] If you are going to use the provided binary, set the \textbf{`executable bit'} by command:
+\item[\textbf{2a.}] If you are going to use the provided binary, set the ``\textbf{executable bit}'' by command:
 \begin{verbatim}
-  chmod a+x rnarobo-1.94-linux64
+  chmod a+x rnarobo-2.1.0-linux64
 \end{verbatim}
-Now you are ready to run RNArobo. In what follows we refer to the binary as `rnarobo', so please substitute `rnarobo-1.9-linux64' for `rnarobo' where applicable.
+Now you are ready to run RNArobo. In what follows we refer to the binary as ``rnarobo'', so please substitute ``rnarobo-2.1.0-linux64'' for ``rnarobo'' where applicable.
 
-\pagebreak
-
-\item[2b.] If you cannot use the provided binary, you have to \textbf{compile RNArobo} from the source code on your own. For this step you need to have GCC compiler installed. First unpack the downloaded package, than go to the unpacked directory and execute "make" command.
+\item[\textbf{2b.}] (Recommended) If you cannot use the provided binary, you have to \textbf{compile RNArobo} from the source code on your own. For this step you need to have GCC compiler installed. First unpack the downloaded package, than go to the unpacked directory and execute "make" command.
 \begin{verbatim}
-  tar -zxf rnarobo-1.94.tar.gz 
-  cd rnarobo-1.94/
+  tar -zxf rnarobo-2.1.0.tar.gz 
+  cd rnarobo-2.1.0/
   make
 \end{verbatim}
 
-By now, you should have an executable file called `rnarobo'. 
+By now, you should have an executable file called ``rnarobo''. 
 
-(Optional) To install rnarobo to be available from every directory, execute "sudo make install" (you will need to enter the superuser password).
+(\textbf{Optional}) To install rnarobo to be available for every user and from every directory, execute ``sudo make install'' command (you will need to enter the superuser password) that will copy the binary file to \texttt{/usr/local/bin/} .
 
-\addtocounter{enumi}{1}
-\item \textbf{Run RNArobo} by the command:
+\item[\textbf{3.}] \textbf{Run RNArobo} by the command:
 \begin{verbatim}
-  ./rnarobo <descriptor-file> <sequence-file>
+  ./rnarobo [options] <descriptor-file> <sequence-file>
 \end{verbatim}
 
-where `$<$descriptor-file$>$' is the path to the descriptor file and `$<$sequence-file$>$' is the path to the sequence database in FASTA format. If rnarobo is properly installed, you can run it from every directory by the same command, but without the `./' prefix.
+where ``$<$descriptor-file$>$'' is the path to the descriptor file and ``$<$sequence-file$>$'' is the path to the sequence database in FASTA format. If rnarobo is properly installed, you can run it from every directory by the same command, but without the ``./'' prefix.
 
-If you also want to \textbf{search in the complementary strands} of the sequences, run RNArobo with `-c' flag: 
+If you also want to \textbf{search in the complementary strands} and \textbf{show only non-overlapping matches} of the sequences, run RNArobo with ``-c'' and ``-u'' flags, e.g.: 
 \begin{verbatim}
-  ./rnarobo -c <descriptor-file> <sequence-file>
+  ./rnarobo  -cu  motif.des  db.fa  > occurrences.txt
 \end{verbatim}
 \end{enumerate}
 
-Output of an RNArobo run is printed on the standard output and consists of a header and of a list of found matches. Matches in the list are in the order as they were found in the database file from its beginning to its end. Every match is compounded of two lines. The first line gives the name and description (if any) of the sequence where this match occurs, the beginning position where the match starts in the sequence and the ending position where the match ends. This line is followed by a line containing the match itself, that is, the substring of the sequence defined by the starting and ending positions. A symbol of pipe `\textbar' delimits individual elements of the match.
+Output of an RNArobo run is printed on the standard output and consists of a header and of a list of found matches. Matches in the list are in the order as they were found in the database file from its beginning to its end. Every match is compounded of two lines. The first line gives the name and description (if any) of the sequence where this match occurs, the beginning position where the match starts in the sequence and the ending position where the match ends. This line is followed by a line containing the match itself, that is, the substring of the sequence defined by the starting and ending positions. A symbol of pipe ``\textbar'' delimits individual elements of the match.
+
+\setdescription{leftmargin=\parindent,labelindent=\parindent}
+\subsection*{Available RNArobo Options:}
+\begin{description}
+\item[\textbf{-c}] ~~search both strands of the database
+\item[\textbf{-u}] ~~report only non-overlapping occurrences
+\item[\textbf{-f}] ~~print output in plain FASTA format
+\item[\textbf{-s}] ~~print output in FASTA format with element separators
+\item[\textbf{-{}-nratio FLOAT}] ~
+\begin{minipage}{0.7\textwidth}
+set max allowed ratio of ``N''s in reported occurrences to their length;\\
+~~~~must be within  $\left\langle 0, 1 \right\rangle$
+\end{minipage} 
+\end{description}
+
+\subsection*{Advanced Options}
+To override default search order training parameters (not recommended though):
+\begin{description}
+\item[\textbf{-{}-k INT}] ~~set length of tuples used in training
+\item[\textbf{-{}-limit INT}] ~~set max size of training set (max number of tuples)
+\item[\textbf{-{}-alpha FLOAT}] ~~set significance level for Welch's t-test, must be: 0.2, 0.1, 0.05, 0.025 or 0.01
+\item[\textbf{-{}-iterative BOOL}] ~~iteratively train whole the ordering TRUE / FALSE
+\item[\textbf{-{}-tonly}] ~~perform only the order training itself
+\end{description}
+The defaults are: -{}-k 3 -{}-limit 50 -{}-alpha 0.01 -{}-iterative TRUE
 
 \bibliography{ref}
  
