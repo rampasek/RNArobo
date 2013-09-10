@@ -1,7 +1,7 @@
 Starting rnarobo: version 2.1.0, September 2013
 ------------------------------------------------------------------
 Database file:                  sample.fa
-Descriptor file:                sample.des
+Descriptor file:                samplePKnot.des
 Complementary strand searched:  yes
 User-predefined search order:   none
 Order training params:          k=3 limit=50 alpha=0.01 iter=true
@@ -9,13 +9,21 @@ Order training params:          k=3 limit=50 alpha=0.01 iter=true
 
  seq-f  seq-t     name      description
 ------ ------ ------------ ------------
-     3     11         seq1             
-|GCG|ACT|CGC|
-    11      3         seq2             
-|GCG|ACT|CGC|
+     1     24         seq4             
+|TGAT|TAAACTCAT|ATAC|GTCA|GGT|
+     1     20         seq5             
+|GTAA|ACTCCT|TTT|ATAT|AGG|
+     1     21         seq6             
+|CGGC|TAACTC|CGT|GCCA|GCAG|
+    44     21       seq4+5     reversed
+|TGAT|TAAACTCAT|ATAC|GTCA|GGT|
+    20      1       seq4+5     reversed
+|GTAA|ACTCCT|TTT|ATAT|AGG|
+    21      1         seq6     reversed
+|CGGC|TAACTC|CGT|GCCA|GCAG|
 
 ----- SEARCH DONE -----
 Total bases scanned: 338
-Reported matches:    2 (2 total)
+Reported matches:    6 (8 total)
 Time since start:    00h 00m 00s (0.00s)
-Final search order:  S1 H1 
+Final search order*: S1 H1 H2 

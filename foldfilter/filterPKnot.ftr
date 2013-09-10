@@ -1,0 +1,6 @@
+# test filter for the toy-example pseudoknot
+sm1:50      h1
+sm2:5%3     h1
+smPKnotWithS1:50 h1 s1 h2
+smPKnot:30 h1 h2
+roi s1

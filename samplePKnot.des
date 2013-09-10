@@ -1,0 +1,7 @@
+# a toy example of a pseudoknot structure that allows one mispair and insertion
+h1 s1 h2 h1' h2'
+
+h1	0:1    **NNN:NNN**
+s1	0      ***ACT***
+h2	0:0:1  NNN:NNN:A
+
