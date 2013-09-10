@@ -67,16 +67,17 @@ def process_inputfile(commandline):
                                 break
                             else:                                                                
                                 following_line = following_line.strip()
+                                following_line = following_line.upper()
                                 marker = True                                
                                 for base in following_line:
-                                    if base in 'ACGU':
+                                    if base in 'ACGUTacgut':
                                         pass
                                     else:
                                         marker = False
                                 if marker:
                                     complete_seq = complete_seq + following_line
                                 else:
-                                    print "Invalid characters in sequence."
+                                    print "Invalid characters in sequence. Make sure to use only A, C, G, U, T."
                                     sys.exit(0)                                    
 
                         if len(complete_seq) == 0:

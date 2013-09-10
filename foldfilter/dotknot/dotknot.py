@@ -23,22 +23,39 @@ import mwis
 import mwis_2d
 import kissing_hairpins
 import pk_tools
+import BPs_to_CT
 
 # Path to RNAfold program which uses low probability threshold
-RNAFOLD_PATH = "./ViennaRNA-1.8.5/Progs/"
+#RNAFOLD_PATH = "./ViennaRNA-1.8.5/Progs/"
+RNAFOLD_PATH = "../ViennaRNA-1.8.3/Progs/"
+#RNAFOLD_PATH = "../../../ViennaRNA-1.8.4/Progs/"
 
 def main(identifier, seq, khp, local, global_structure):
+    #---------------------------------------------------------------------------------------------------------                
+    # Assign ID to the sequence, so that file names will be unique, hopefully, if DotKnot is run in parallel
+    FILE_ID = identifier.strip()
+    FILE_ID = FILE_ID.replace('>','')
+    FILE_ID = FILE_ID.split()
+    if len(FILE_ID) > 1:
+        FILE_ID = FILE_ID[0]
+    else:
+        FILE_ID = str(FILE_ID[0])
+    FILE_ID = FILE_ID.replace('.','')
+    FILE_ID = FILE_ID.replace('_','')
+    FILE_ID = FILE_ID[:12]
+    #---------------------------------------------------------------------------------------------------------                
     print identifier
     print seq
     print "Sequence length: ", len(seq)
+    print "Using " + FILE_ID + " as file identifier"
     print
     print "DotKnot is running..."
-    print "Predicting pseudoknots..."  
+    print "Predicting pseudoknots..."
     #---------------------------------------------------------------------------------------------------------                
     # Construct stems from stack probabilities and store in stem dictionary
-    basepairs = stems.RNAfold_dotplot(seq, RNAFOLD_PATH)    
+    basepairs = stems.RNAfold_dotplot(seq, RNAFOLD_PATH, FILE_ID)    
     stem_dic = stems.find_stems(basepairs)
-    stem_dic = stems.evaluation_stems(stem_dic, seq, RNAFOLD_PATH)    
+    stem_dic = stems.evaluation_stems(stem_dic, seq, RNAFOLD_PATH, FILE_ID)    
     CUTOFF_STACK = 0.0 
     CUTOFF_LOOP = 4.0
     stem_dic = stems.filter_stems(stem_dic, CUTOFF_STACK, CUTOFF_LOOP)
@@ -47,7 +64,7 @@ def main(identifier, seq, khp, local, global_structure):
     CUTOFF_PROB =  0.001
     stems_ib = stems.filter_stems_prob(stem_dic, CUTOFF_PROB)
     structures_dic = secondary_elements.internal_mwis(stems_ib)
-    bulges_internal, multiloops = secondary_elements.evaluation_secondary_structures(structures_dic, seq, RNAFOLD_PATH)
+    bulges_internal, multiloops = secondary_elements.evaluation_secondary_structures(structures_dic, seq, RNAFOLD_PATH, FILE_ID)
     CUTOFF_IB_ML = 0.0
     bulges_internal = secondary_elements.filter_stems(bulges_internal, CUTOFF_IB_ML)
     multiloops = secondary_elements.filter_stems(multiloops, CUTOFF_IB_ML) 
@@ -60,7 +77,7 @@ def main(identifier, seq, khp, local, global_structure):
     # Re-evaluate stem energies to account for shortended stems in pseudoknots
     stems_shortened.update(stems_shortened_ib)
     if stems_shortened:
-        stems_shortened_dic = stems.evaluation_stems(stems_shortened, seq, RNAFOLD_PATH)
+        stems_shortened_dic = stems.evaluation_stems(stems_shortened, seq, RNAFOLD_PATH, FILE_ID)
         stems_shortened_dic = stems.update_confidence(stem_dic, stems_shortened_dic)
         stems_shortened_dic = stems.filter_stems(stems_shortened_dic, CUTOFF_STACK, CUTOFF_LOOP)
     else:
@@ -142,7 +159,7 @@ def main(identifier, seq, khp, local, global_structure):
         #---------------------------------------------------------------------------------------------------------
         # Re-evaluate stem energies to account for shortended stems
         if stems_shortened:
-          stems_shortened_dic = stems.evaluation_stems(stems_shortened, seq, RNAFOLD_PATH)
+          stems_shortened_dic = stems.evaluation_stems(stems_shortened, seq, RNAFOLD_PATH, FILE_ID)
           stems_shortened_dic = stems.update_confidence(stem_dic_kissing, stems_shortened_dic)
           stems_shortened_dic = stems.filter_stems(stems_shortened_dic, CUTTOFF_STACK_KHP, CUTTOFF_LOOP_KHP)  
         else:
@@ -234,8 +251,29 @@ def main(identifier, seq, khp, local, global_structure):
         print "Predicted global structure"
         print seq
         print predicted_global_structure
+
+        # Create CT file
+        base_pairs = BPs_to_CT.db_to_ct_brackets(predicted_global_structure)
+        output_ct = FILE_ID + '.ct'
+        BPs_to_CT.write_CT_file(seq, base_pairs, output_ct)
+        
+    #---------------------------------------------------------------------------------------------------------
+    try:
+        os.remove(FILE_ID + '_stem_structure.txt')
+        os.remove(FILE_ID + '_stacking_energy.txt')
+        os.remove(FILE_ID + '_loops_energy.txt')
+        os.remove(FILE_ID + '_input.fasta')
+        os.remove(FILE_ID + '_bulge_internal_structures.txt')
+        os.remove(FILE_ID + '_bulge_internal_energy.txt')
+        os.remove(FILE_ID + '_multiloops_energy.txt')
+        os.remove(FILE_ID + '_multiloop_structures.txt')
+        os.remove(FILE_ID + '_ss.ps')
+        os.remove(FILE_ID + '_dp.ps')
+        os.remove(FILE_ID + '_dp2.ps')
+    except:
         print
-    #---------------------------------------------------------------------------------------------------------      
+        print "Error deleting the files DotKnot created."
+        
     return
 
 
@@ -250,6 +288,6 @@ commandline = sys.argv
 input = user.process_inputfile(commandline)
 khp, local, global_structure = user.process_arguments(commandline)
 
-for identifier, seq in input:
+for identifier, seq in input:    
     main(identifier, seq, khp, local, global_structure)
    

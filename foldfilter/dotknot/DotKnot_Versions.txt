@@ -1,0 +1,66 @@
+##-----------------------------##
+Version 1.1
+##-----------------------------##
+
+Done:
+- in functions.py changed def create_sorted_endpointlist(intervals) to make it faster
+- changed mwis.py
+
+- added pk_tools
+
+Effect:
+- speed-up
+
+- show the best near-optimal pseudoknots
+
+##-----------------------------##
+Version 1.2
+##-----------------------------##
+
+Done:
+- kissing hairpins
+- global structure
+
+Effect:
+- prediction of kissing hairpins
+
+- show the best near-optimal pseudoknots and kissing hairpins
+
+- show the predicted global structure
+
+Bugfixes:
+- allowed overlap of 1nt at junction for pseudoknots with interrupted stems (pk_construction.py)
+
+##-----------------------------##
+Version 1.2.1
+##-----------------------------##
+
+Done:
+- takes FASTA file with multiple sequences as input
+
+##-----------------------------##
+Version 1.3
+##-----------------------------##
+
+Done:
+- implemented dynamic programming algorithm to speed up recursive secondary 
+  structure element search for pseudoknot/kissing hairpin candidates
+- general cleaning up
+
+##-----------------------------##
+Version 1.3.1
+##-----------------------------##
+
+Done:
+- deleted redundant file bulges_internal.py
+- drop thresholds in CC06, CC09, LongPK. These forced core H-type pseudoknot to have lower 
+free energy than single hairpins (S1 and S2). However, it is preferable to have these 
+thresholds AFTER recursive secondary structure elements in the loops are taken into account.
+- assign (hopefully) unique file name to each sequence to allow DotKnot to run in parallel
+for a set of sequences. After DotKnot is finished, files are deleted. File names start with an
+(hopefully) unique identifier, which consists of the first 12 characters of the identifier 
+given in the first line of the FASTA file.
+- fix bug where overlapping brackets are printed incorrectly in pk_tools.add_recursive_elements()
+- output CT file for global structure
+
+

@@ -1,0 +1,31 @@
+Heuristic RNA pseudoknot prediction including intramolecular kissing hairpins. 
+Jana Sperschneider, Amitava Datta and Michael J. Wise. 
+
+DotKnot: pseudoknot prediction using the probability dot plot under a refined energy model
+Jana Sperschneider and Amitava Datta
+
+Copyright (C) 2010-2011 Jana Sperschneider
+Send comments/bug reports to: Jana Sperschneider <janaspe@csse.uwa.edu.au>
+
+Copyright
+
+DotKnot is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+DotKnot is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with DotKnot.  If not, see <http://www.gnu.org/licenses/>.
+ 
+Permission is granted for research, educational, and commercial use
+and modification so long as 1) the package and any derived works are
+not redistributed for any fee, other than media costs, 2) proper
+credit is given to the authors.
+
+If you want to include this software in a commercial product, please contact 
+the authors.

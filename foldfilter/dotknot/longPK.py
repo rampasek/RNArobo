@@ -48,8 +48,7 @@ def dic_longpks(pk_dic_longpk, stem_dic, INIT, PENALTY):
         pk_energy = stack_s1 + stack_s2 + entropy + INIT
       
         if pk_energy < 0.0:            
-            if pk_energy < energy_s1 and pk_energy < energy_s2:
-                pk_dic_longpk_result[pk_stem] = pk_energy, stack_s1, stack_s2, l1, l2, l3, entropy, looplength
+            pk_dic_longpk_result[pk_stem] = pk_energy, stack_s1, stack_s2, l1, l2, l3, entropy, looplength
                 
     return pk_dic_longpk_result
 

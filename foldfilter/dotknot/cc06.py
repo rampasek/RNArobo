@@ -137,7 +137,7 @@ def dic_caochen06(pk_dic_cc06, stem_dic, stems_shortened_dic, seq):
         # Calculate free energy for pseudoknot
         pk_energy = stack_s1 + stack_s2 + entropy_l1 + entropy_l3 + 1.3 + coaxial_stacking
 
-        if pk_energy < 0.0 and pk_energy - coaxial_stacking < threshold_s1 and pk_energy - coaxial_stacking < threshold_s2:
+        if pk_energy < 0.0:
             pk_dic_cc06_result[pk_stem] = pk_energy, stack_s1, stack_s2, entropy_l1, 0.0, entropy_l3, coaxial_stacking              
 
     return pk_dic_cc06_result  

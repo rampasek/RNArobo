@@ -52,9 +52,10 @@ def MWIS(interval_set, sorted_endpointlist):
     for endpoint in sorted_endpointlist:          # Step 2
         if endpoint[1] == 'l':                    # If left endpoint is scanned
             c = endpoint[3] - 1
-            value[c] = temp_max + endpoint[2]            
-        if endpoint[1] == 'r':                    # If right endpoint is scanned
-            c = endpoint[3] - 1
+            value[c] = temp_max + endpoint[2]
+            
+        if endpoint[1] == 'r':                    # If right endpoint is scanned            
+            c = endpoint[3] - 1                            
             if value[c] > temp_max:
                 temp_max = value[c]
                 last_interval = c

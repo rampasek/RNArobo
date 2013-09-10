@@ -101,7 +101,7 @@ def find_nested(interval, candidate_list):
     return result
 
 
-def evaluation_secondary_structures(structures_dic, seq, RNAFOLD_PATH):    
+def evaluation_secondary_structures(structures_dic, seq, RNAFOLD_PATH, FILE_ID):    
     """ Function: evaluation_secondary_structures()
 
         Purpose:  Find all inner stems, given a right endpoint of an outer stem
@@ -112,8 +112,8 @@ def evaluation_secondary_structures(structures_dic, seq, RNAFOLD_PATH):
         Return:   Inner intervals.
     """
     try:
-        bulges_internal = file("bulge_internal_structures.txt",'w')
-        multiloops = file("multiloop_structures.txt",'w')
+        bulges_internal = file(FILE_ID + "_bulge_internal_structures.txt",'w')
+        multiloops = file(FILE_ID + "_multiloop_structures.txt",'w')
     except IOError:
         print "Error: could not write files to disk!"
         sys.exit(1)
@@ -167,8 +167,8 @@ def evaluation_secondary_structures(structures_dic, seq, RNAFOLD_PATH):
     bulges_internal.close()
     multiloops.close()
     
-    RNAeval_files(RNAFOLD_PATH)
-    bulges_internal, multiloops = create_stem_dictionaries()
+    RNAeval_files(RNAFOLD_PATH, FILE_ID)
+    bulges_internal, multiloops = create_stem_dictionaries(FILE_ID)
                                 
     return bulges_internal, multiloops
 
@@ -237,7 +237,7 @@ def dot_bracket_notation(start, end, seq, dot_bracket, stem_list_recursive):
     return local_sequence, structure
 
    
-def RNAeval_files(RNAFOLD_PATH):
+def RNAeval_files(RNAFOLD_PATH, FILE_ID):
     """ Function: RNAeval_files()
 
         Purpose:  Call RNAeval with hairpin loop entropies and write to file.
@@ -246,13 +246,13 @@ def RNAeval_files(RNAFOLD_PATH):
     """     
     try: 
         # Evaluate with stacking only
-        command = RNAFOLD_PATH + "RNAeval < multiloop_structures.txt > multiloops_energy.txt"
+        command = RNAFOLD_PATH + "RNAeval < " + FILE_ID + "_multiloop_structures.txt > " + FILE_ID + "_multiloops_energy.txt"
         
         result = Popen(command, shell=True, stdout = PIPE)
         eval_stacking, err = result.communicate()               
         
         # Evaluate with loop entropies
-        command = RNAFOLD_PATH + "RNAeval < bulge_internal_structures.txt > bulge_internal_energy.txt"
+        command = RNAFOLD_PATH + "RNAeval < " + FILE_ID + "_bulge_internal_structures.txt > " + FILE_ID + "_bulge_internal_energy.txt"
         
         result = Popen(command, shell=True, stdout = PIPE)
         eval_loops, err = result.communicate()           
@@ -272,7 +272,7 @@ hairpin_dic = {
 22: 6.2 , 23: 6.2 , 24: 6.3, 25: 6.3, 26: 6.3, 27: 6.4, 28: 6.4, 29: 6.5, 30: 6.5
 }
 
-def create_stem_dictionaries():
+def create_stem_dictionaries(FILE_ID):
     """ Function: create_stem_dictionaries()
 
         Purpose:  Scan files produced by RNAeval. Create stem dictionaries:
@@ -280,7 +280,7 @@ def create_stem_dictionaries():
 
         Return:   Two dictionary of bulge/internal loop structures and multiloops.
     """        
-    output = file("bulge_internal_energy.txt",'r')
+    output = file(FILE_ID + "_bulge_internal_energy.txt",'r')
     stem_list = [i for i in output]
     output.close()
     
@@ -314,7 +314,7 @@ def create_stem_dictionaries():
 
         bulge_internal_dic[key] = length, dot_bracket, float(free_energy), float(stack_energy)
         
-    output = file("multiloops_energy.txt",'r')
+    output = file(FILE_ID + "_multiloops_energy.txt",'r')
     stem_list = [i for i in output]
     output.close()
     

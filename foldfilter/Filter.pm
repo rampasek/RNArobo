@@ -445,6 +445,10 @@ sub computeScores {
               close(TMP_FILE);
               
               my $res = `python dotknot.py $tmpFileName -klg`;
+              if ( $? != 0 ){
+                die "Calling DotKnot failed: $!\n".
+                    "! CHECK IF DotKnot IS PROPERLY INSTALLED !\n";
+              }
               unlink($tmpFileName);
               chdir "../";
 

@@ -14,7 +14,7 @@ import re
 from subprocess import Popen, PIPE
 
   
-def RNAfold_dotplot(seq, RNAFOLD_PATH):
+def RNAfold_dotplot(seq, RNAFOLD_PATH, FILE_ID):
     """ Function: RNAfold_dotplot()
 
         Purpose:  Given an input RNA sequence, obtain stack probabilities from RNAfold -p.
@@ -27,14 +27,15 @@ def RNAfold_dotplot(seq, RNAFOLD_PATH):
         Return:   A dictionary of stack probabilities. 
     """  
     try:
-        infile = open("input.fasta", "w")
+        infile = open(FILE_ID + "_input.fasta", "w")
+        print >> infile, '>', FILE_ID
         print >> infile, seq
         infile.close()
     except IOError:
         print "Error: could not write to disk!"
         sys.exit(1)
 	
-    command = RNAFOLD_PATH + "RNAfold -p2 -d2 -noLP < input.fasta"
+    command = RNAFOLD_PATH + "RNAfold -p2 -d2 -noLP < " + FILE_ID + "_input.fasta"
     result = Popen(command, shell=True, stdout = PIPE)
     mfe, err = result.communicate()
     
@@ -43,7 +44,7 @@ def RNAfold_dotplot(seq, RNAFOLD_PATH):
         sys.exit(0)   
         
     try:
-        f = open("dot2.ps",'r')  
+        f = open(FILE_ID + "_dp2.ps",'r')  
     except IOError:
         print "Error: the dot plot file 'dot2.ps' created by RNAfold could not be opened!"
         sys.exit(1)
@@ -126,7 +127,7 @@ def find_stems(basepairs):
     return stem_dic              
 
 
-def evaluation_stems(stem_dic, seq, RNAFOLD_PATH):
+def evaluation_stems(stem_dic, seq, RNAFOLD_PATH, FILE_ID):
     """ Function: evaluation_stems()
 
         Purpose:  Function for evaluation of local stem energies using RNAeval.
@@ -140,7 +141,7 @@ def evaluation_stems(stem_dic, seq, RNAFOLD_PATH):
         Return:   An updated dictionary of stems.
     """    
     try:
-        stem_structure = file("stem_structure.txt",'w')
+        stem_structure = file(FILE_ID + "_stem_structure.txt",'w')
     except IOError:
         print "Error: file could not be written to disk."
         sys.exit(1)
@@ -179,13 +180,13 @@ def evaluation_stems(stem_dic, seq, RNAFOLD_PATH):
         
     stem_structure.close()
 
-    RNAeval_files(RNAFOLD_PATH)
-    stem_dic = update_stem_dictionary(stem_dic)
+    RNAeval_files(RNAFOLD_PATH, FILE_ID)
+    stem_dic = update_stem_dictionary(stem_dic, FILE_ID)
     
     return stem_dic
 
   
-def RNAeval_files(RNAFOLD_PATH):
+def RNAeval_files(RNAFOLD_PATH, FILE_ID):
     """ Function: RNAeval_files()
 
         Purpose:  Call RNAeval with and without hairpin loop entropies and
@@ -193,13 +194,13 @@ def RNAeval_files(RNAFOLD_PATH):
     """  
     try: 
         # Evaluate with stacking only
-        command = RNAFOLD_PATH + "RNAeval -d2 -P stacking_only.par < stem_structure.txt > stacking_energy.txt"
+        command = RNAFOLD_PATH + "RNAeval -d2 -P stacking_only.par < " + FILE_ID + "_stem_structure.txt > " + FILE_ID + "_stacking_energy.txt"
 
         result = Popen(command, shell=True, stdout = PIPE)
         eval_stacking, err = result.communicate()         
         
         # Evaluate with loop entropies
-        command = RNAFOLD_PATH + "RNAeval -d2 < stem_structure.txt > loops_energy.txt"
+        command = RNAFOLD_PATH + "RNAeval -d2 < " + FILE_ID + "_stem_structure.txt > " + FILE_ID + "_loops_energy.txt"
 
         result = Popen(command, shell=True, stdout = PIPE)
         eval_loops, err = result.communicate()         
@@ -210,7 +211,7 @@ def RNAeval_files(RNAFOLD_PATH):
     return
 
 
-def update_stem_dictionary(stem_dic):
+def update_stem_dictionary(stem_dic, FILE_ID):
     """ Function: update_stem_dictionary()
 
         Purpose:  Scan files produced by RNAeval. Update stem dictionary:
@@ -220,11 +221,11 @@ def update_stem_dictionary(stem_dic):
 
         Return:   An updated dictionary of stems.
     """    
-    output = file("stacking_energy.txt",'r')
+    output = file(FILE_ID + "_stacking_energy.txt",'r')
     stem_list = [i for i in output]
     output.close()    
 
-    output = file("loops_energy.txt",'r')
+    output = file(FILE_ID + "_loops_energy.txt",'r')
     stem_loops_list = [i for i in output]
     output.close()
 

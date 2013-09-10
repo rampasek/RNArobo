@@ -101,12 +101,12 @@ def dic_caochen09(pk_dic_cc09, stem_dic):
             if quintet in entropies_dic_L3:
                 a_b = entropies_dic_L3[quintet]
                 entropy = a_b[0] * math.log(l3) + a_b[1]
+
             
         if entropy:
             pk_energy = stack_s1 + stack_s2 - (0.62 * entropy)
             if pk_energy < 0.0: 
-                if pk_energy < energy_s1 and pk_energy < energy_s2:
-                    pk_dic_cc09_result[pk_stem] = pk_energy, stack_s1, stack_s2, l1, l3, l2, 0.62 * entropy            
+                pk_dic_cc09_result[pk_stem] = pk_energy, stack_s1, stack_s2, l1, l3, l2, 0.62 * entropy            
             
     return pk_dic_cc09_result, entropies_dic, entropies_dic_L1, entropies_dic_L3
 
@@ -183,7 +183,7 @@ def pk_energy_reevaluation_09(pk_dic_cc09, entropies_dic, entropies_dic_L1, entr
             stack_s2 = values[0][2]   
             
             pk_energy = stack_s1 + stack_s2 - (0.62 * entropy) + energy_l1 + energy_l3 
-      
+            
             if entropy:
                 if pk_energy < 0.0:
                     if pk_energy < values[0][0]:                 

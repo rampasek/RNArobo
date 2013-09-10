@@ -8,6 +8,7 @@
     (at your option) any later version.
 """
 
+import functions
 
 def output_best_ratio(pk_not_filtered, best_khps, NUMBER_OF_BEST_PKS):    
     """ Function: output_best_ratio()
@@ -223,7 +224,7 @@ def dot_bracket(seq, best_pks, stem_dic, stems_shortened_dic, bulges_internal, m
             pseudoknot = [i, l, energy, pk_seq, pk_structure]             
             pseudoknot_list.append(pseudoknot)                                          
 
-    return pseudoknot_list    
+    return pseudoknot_list
 
 
 def add_recursive_elements(i, recursive_loop, pk_structure, stem_dic, bulges_internal, multiloops):
@@ -235,8 +236,31 @@ def add_recursive_elements(i, recursive_loop, pk_structure, stem_dic, bulges_int
         Input:    Pseudoknot and elements for a loop. 
         
         Return:   Pseudoknots in dot-bracket notation.
-    """ 
-    for element in recursive_loop:
+    """
+
+    # Calculate MWIS to avoid overlapping base pairs
+    if recursive_loop:      
+        candidate_list = []
+        for item in recursive_loop:
+            # Weights need to be positive
+            element = (item[0], item[1], -1.0*item[2], -1.0*item[2], -1.0*item[2], item[4])
+            candidate_list.append(element)
+        
+        candidate_list.sort()        
+        sorted_endpoint_list = functions.create_sorted_endpointlist(candidate_list)
+        result = functions.MWIS(candidate_list, sorted_endpoint_list)
+
+        mwis_set = []
+        overlapping_set = []
+        
+        for item in result:
+            item_format = (item[0], item[1], -1.0*item[2], -1.0*item[2], item[5])
+            mwis_set.append(item_format)
+        for item in recursive_loop:
+            if item not in mwis_set:
+                overlapping_set.append(item)
+    
+    for element in mwis_set:
         start = element[0] - i
         end = element[1] - i
         
@@ -258,7 +282,28 @@ def add_recursive_elements(i, recursive_loop, pk_structure, stem_dic, bulges_int
             structure_ml = structure_ml.replace(':','') # Cut off dangling ends
             pk_structure = pk_structure[0:start] + list(structure_ml) + pk_structure[end+1:]
 
+    for element in overlapping_set:
+        start = element[0] - i + 1
+        end = element[1] - i - 1
+        
+        if element[4] == 'hp':
+            element_length = stem_dic[element[0],element[1]][0] 
+            for counter in xrange(1,element_length):
+                pk_structure = pk_structure[0:start] + list('(') + pk_structure[start+1:]
+                pk_structure = pk_structure[0:end] + list(')') + pk_structure[end+1:]
+                start = start + 1
+                end = end - 1
+                
+        elif element[4] == 'ib':
+            structure_ib = bulges_internal[element[0],element[1]][1]                    
+            structure_ib = structure_ib.replace(':','') # Cut off dangling ends
+            structure_ib = structure_ib[1:-1]
+            pk_structure = pk_structure[0:start] + list(structure_ib) + pk_structure[end+1:]
+            
+        elif element[4] == 'ml':
+            structure_ml = multiloops[element[0],element[1]][1]                    
+            structure_ml = structure_ml.replace(':','') # Cut off dangling ends
+            structure_ml = structure_ml[1:-1]
+            pk_structure = pk_structure[0:start] + list(structure_ml) + pk_structure[end+1:]
+
     return pk_structure
-
-  
-

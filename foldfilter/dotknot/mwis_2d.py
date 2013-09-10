@@ -77,6 +77,17 @@ def DP_MWIS(seq, elements, MAX_LOOP_UPPER):
                 # Lower score when no interval which ends at j is added
                 else:
                     array[i][j] = previous_value, None                
+
+    """mwis_2d_file = file("mwis_2d_file.txt",'w')
+    for index, item in enumerate(array):        
+        for index2, item2 in enumerate(array[index]):
+            #if item2[0] != 0.0 and item2[1] != [] and index < index2:
+            mwis_2d_file.write(str(index))
+            mwis_2d_file.write(" ")            
+            mwis_2d_file.write(str(index2))
+            mwis_2d_file.write(" result ")
+            mwis_2d_file.write(str(item2))
+            mwis_2d_file.write("\n")"""
     
     return array
 
@@ -103,6 +114,7 @@ def traceback_mwis_2d(seq, array, MAX_LOOP_UPPER):
                 loop_end = j
                 elements = []
                 
+                #if energy != 0.0:
                 energy = array[loop_start][loop_end][0]
                 element = array[loop_start][loop_end][1]
                 new_loop_end = loop_end
@@ -126,8 +138,23 @@ def traceback_mwis_2d(seq, array, MAX_LOOP_UPPER):
                 # Calculate effective loop length
                 looplength = loop_end - loop_start + 1
                 effective_looplength = functions.effective_length(elements, looplength)                 
+
+                #else:
+                #    effective_looplength = j - i + 1
                 
                 array_traceback[i][j] = array[i][j][0], elements, effective_looplength
+
+
+    """mwis_2d_file = file("mwis_2d_file.txt",'w')
+    for index, item in enumerate(array_traceback):        
+        for index2, item2 in enumerate(array_traceback[index]):
+            #if item2[0] != 0.0 and item2[1] != [] and index < index2:
+            mwis_2d_file.write(str(index))
+            mwis_2d_file.write(" ")            
+            mwis_2d_file.write(str(index2))
+            mwis_2d_file.write(" result ")
+            mwis_2d_file.write(str(item2))
+            mwis_2d_file.write("\n")"""
 
     return array_traceback
 
@@ -154,6 +181,7 @@ def DP_MWIS_positive_weights(seq, elements, MAX_LOOP_UPPER):
         endpoints[right_endpoint] = values
             
     # Base case: f(i,i) = {}, 0
+    # Initialize array instead of dictionary to save space      
     array = [[(0.0, None)  for i in xrange(len(seq) + 1)] for j in xrange(len(seq) + 1)]                 
     
     for i in xrange(1, len(seq)):
