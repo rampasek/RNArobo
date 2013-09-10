@@ -26,9 +26,7 @@ import pk_tools
 import BPs_to_CT
 
 # Path to RNAfold program which uses low probability threshold
-#RNAFOLD_PATH = "./ViennaRNA-1.8.5/Progs/"
-RNAFOLD_PATH = "../ViennaRNA-1.8.3/Progs/"
-#RNAFOLD_PATH = "../../../ViennaRNA-1.8.4/Progs/"
+RNAFOLD_PATH = "./ViennaRNA-1.8.5/Progs/"
 
 def main(identifier, seq, khp, local, global_structure):
     #---------------------------------------------------------------------------------------------------------                

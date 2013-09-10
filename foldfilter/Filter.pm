@@ -444,10 +444,19 @@ sub computeScores {
               print TMP_FILE ">tmp\n$tmpseq\n"; 
               close(TMP_FILE);
               
+              #check that the modified ViennaRNA-1.8.5 is there for DotKnot
+              foreach my $RNAprogram ('RNAfold', 'RNAeval'){
+                  `echo '' | ViennaRNA-1.8.5/Progs/$RNAprogram`;
+                  if ( $? != 0 ){
+                    die "Calling $RNAprogram for DotKnot failed: $!\n!".
+                    "CHECK IF ViennaRNA-1.8.5 in DotKnot installation IS PROPERLY INSTALLED !\n";
+                  }
+              }
+              
+              #call DotKnot
               my $res = `python dotknot.py $tmpFileName -klg`;
               if ( $? != 0 ){
-                die "Calling DotKnot failed: $!\n".
-                    "! CHECK IF DotKnot IS PROPERLY INSTALLED !\n";
+                die "Calling DotKnot failed: $!\n! CHECK IF DotKnot IS PROPERLY INSTALLED !\n";
               }
               unlink($tmpFileName);
               chdir "../";
