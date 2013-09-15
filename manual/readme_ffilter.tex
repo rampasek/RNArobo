@@ -1,0 +1,72 @@
+%
+%
+% Project      : RNA motif searching in genomic sequences
+% Description  : the LaTeX source code of the readme file
+%
+% Author       : Ladislav Rampasek <rampasek@gmail.com>
+% Institution  : Comenius University in Bratislava
+%
+
+\documentclass[11pt]{article}
+%\topmargin=-2.5cm
+%\usepackage{a4wide}
+\usepackage{fullpage}
+\usepackage[english]{babel}
+\usepackage[IL2]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[none]{hyphenat}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+
+\usepackage{ifpdf}
+\ifpdf
+\usepackage{thumbpdf}
+\pdfcompresslevel=9
+\RequirePackage[colorlinks,hyperindex,plainpages=false]{hyperref}
+\def\pdfBorderAttrs{/Border [0 0 0] } % No border arround Links
+\else
+\RequirePackage[plainpages=true]{hyperref}
+\usepackage{color}
+\fi
+
+\usepackage{natbib}
+%\usepackage{xltxtra}
+%\setmainfont[Mapping=tex-text]{Ubuntu}
+\usepackage[all]{hypcap}
+
+
+\begin{document} %%%% samotny dokument zacina tu %%%%
+\bibliographystyle{alpha}
+
+\begin{center}
+\section*{Fold-Filter \& scripts -- User Manual}
+\today
+\end{center}
+
+Description about what it does and what is it good for.
+
+Explanation of the filtering options and of the filter format.
+
+\section*{Example Filter}
+More detailed explanation on examples.
+
+\section*{Installation / Usage}
+Mainly discuss all the prerequisites that are needed - Python2.x, Perl, ViennaRNA \cite{lorenz2011viennarna}, DotKnot \cite{sperschneider2010dotknot, sperschneider2011heuristic} with its own custom ViennaRNA instance, optionally UCLUST \cite{edgar2010search}.
+
+\setdescription{leftmargin=\parindent,labelindent=\parindent}
+\subsection*{Available Options:}
+..options..
+
+\section*{More Scripts}
+Short description of the other scripts.
+\subsection*{parse\_rnarobo.pl}
+\subsection*{weights\_tool.pl}
+
+\section*{Example Usage in Pipeline with RNArobo}
+
+\bibliography{ref}
+ 
+\end{document}

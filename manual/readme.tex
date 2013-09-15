@@ -40,7 +40,7 @@
 
 
 \begin{document} %%%% samotny dokument zacina tu %%%%
-\bibliographystyle{plainnat}
+\bibliographystyle{alpha}
 
 \begin{center}
 \section*{RNArobo 2.1.0 -- Quick Start Guide}
@@ -49,7 +49,7 @@
 
 RNArobo is a fast RNA structural motif search tool. RNArobo can search sequence databases in FASTA format for a motif defined by a ``descriptor'', which can specify primary and secondary structure constraints.
 
-The format of an RNArobo descriptor is an extension of the descriptor format used by RNABob (a search tool by \citet{eddy1996}), thus RNABob descriptors are compatible with RNArobo. A descriptor consists of three parts:
+The format of an RNArobo descriptor is an extension of the descriptor format used by RNABob \cite{eddy1996}, thus RNABob descriptors are compatible with RNArobo. A descriptor consists of three parts:
 \begin{enumerate}
 \item a \textbf{motif map} -- a list of individual \emph{structural elements}
   ordered from 5' to 3' end along the sequence
@@ -102,7 +102,7 @@ To specify custom pairing function for a helical element, you can use an \emph{r
 This variation of the previous descriptor allows only canonical base-pairs \texttt{A-T} and \texttt{C-G} in the relational element \texttt{r1}. The individual IUPAC codes in the \emph{transformation} string \texttt{TGCA} define nucleotides that can pair with \texttt{A}, \texttt{C}, \texttt{G}, and \texttt{T}, respectively in this order. For default helical elements (e.g. \texttt{h1}) RNArobo allows also Watson-Crick base pairs, as the default \emph{transformation} string is \texttt{TGYR}.
 \end{quote}
 
-(\textbf{Optional}) The last line of the example descriptor above illustrates usage of an optional reorder command which specifies the order in which elements are internally searched by the RNArobo algorithm, similarly to RNAMot \citep{gautheret1990}. If this command is absent or does not contain all elements, an automatic data-driven method is used to determine the best possible ordering of all remaining elements. This command has no principal impact on the actual results of the search, but defining a previously trained order can speed up the search by few seconds.
+(\textbf{Optional}) The last line of the example descriptor above illustrates usage of an optional reorder command which specifies the order in which elements are internally searched by the RNArobo algorithm, similarly to RNAMot \cite{gautheret1990}. If this command is absent or does not contain all elements, an automatic data-driven method is used to determine the best possible ordering of all remaining elements. This command has no principal impact on the actual results of the search, but defining a previously trained order can speed up the search by few seconds.
 
 \section*{Installation / Usage}
 To run RNArobo on your system, you need GCC C++ compiler (tested with version 4.4.5) or for 64-bit Linux systems we directly provide an executable binary.
