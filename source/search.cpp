@@ -12,7 +12,7 @@
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include <tr1/array>
+#include <array>
 #include <list>
 #include <stack>
 #include <queue>
@@ -845,9 +845,9 @@ void Simple_Search::get_ss_matches(SSE &se, string &seq, interval &begin_reg, in
     int seq_length=seq.size();
     interval match;
     
-    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    stack< array<unsigned int, 7> > vertex_queue;
     for(int pos=begin_reg.first; pos<begin_reg.second; pos++){
-        tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+        array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
         assert(vertex_queue.empty());
         se.table.clear();
         
@@ -943,9 +943,9 @@ void Simple_Search::run_fwddp_ss(SSE &se, string &seq, interval &begin_reg){
     int patt_length=se.pattern.size();
     int seq_length=seq.size();
 
-    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    stack< array<unsigned int, 7> > vertex_queue;
     for(int pos=begin_reg.first; pos<begin_reg.second; pos++){
-        tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+        array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
         assert(vertex_queue.empty());
         
         //seq is indexed from 0 to seq.size()-1, but we need it now from 1..seq.size()
@@ -1032,9 +1032,9 @@ void Simple_Search::run_fwddp_ss(SSE &se, string &seq, interval &begin_reg){
  */
 void Simple_Search::trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, interval &end_reg){
     set<int> beginnings;
-    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    stack< array<unsigned int, 7> > vertex_queue;
     Matrix visited(5);
-    //set< tr1::array<unsigned int, 7> > visited;
+    //set< array<unsigned int, 7> > visited;
 
     for(int end=end_reg.first; end<end_reg.second; end++){
         if(se.occurrences.find(make_pair(end+1, 0)) == se.occurrences.end()) continue;
@@ -1050,7 +1050,7 @@ void Simple_Search::trace_bckdp_ss(SSE &se, string &seq, interval &begin_reg, in
             } else {
         #endif
 
-        tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+        array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
         
         tmp_vertex[0] = end+1;
         tmp_vertex[1] = se.pattern.size();
@@ -1166,12 +1166,12 @@ void Simple_Search::get_h_matches(SSE &se, string &seq, list<interval_pair> &dom
     int min_dist = se.strand_dist.first + 2*se.size_range.first -1;
     int max_dist = se.strand_dist.second + 2*se.size_range.second;
     
-    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    stack< array<unsigned int, 7> > vertex_queue;
     for(int s1_b=domain.front().BEGIN.first; s1_b<domain.front().BEGIN.second; s1_b++)
     {
     for(int s2_e=max(domain.back().END.first, s1_b+min_dist); s2_e<min(domain.back().END.second, s1_b+max_dist); s2_e++)
     {
-        tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+        array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
         assert(vertex_queue.empty());
         se.table.clear();
     
@@ -1301,8 +1301,8 @@ void Simple_Search::get_h_matches(SSE &se, string &seq, list<interval_pair> &dom
  */
 void Simple_Search::run_fwddp_h(SSE &se, string &seq, int strand1_begin, int strand2_end){
     //vector<int> tmp_vertex(7);
-    tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
-    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+    stack< array<unsigned int, 7> > vertex_queue;
     int patt_length=se.pattern.size();
     int seq_length=seq.size();
     
@@ -1421,10 +1421,10 @@ void Simple_Search::trace_bckdp_h(SSE &se, string &seq, int lower_bound1, int up
     #endif
 
     //vector<int> tmp_vertex(7);
-    tr1::array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
-    stack< tr1::array<unsigned int, 7> > vertex_queue;
+    array<unsigned int, 7> tmp_vertex = {{0, 0, 0, 0, 0, 0, 0}};
+    stack< array<unsigned int, 7> > vertex_queue;
     //Matrix visited(7);
-    set< tr1::array<unsigned int, 7> > visited;
+    set< array<unsigned int, 7> > visited;
 
     tmp_vertex[0] = end+1;
     tmp_vertex[1] = begin+1;

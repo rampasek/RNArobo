@@ -12,7 +12,7 @@
 
 #include <vector>
 #include <set>
-#include <tr1/array>
+#include <array>
 
 using namespace std;
 
@@ -22,8 +22,8 @@ class Matrix{
         Matrix(){ Matrix(1); };
         Matrix(unsigned int num_dimensions) : num_dimensions(num_dimensions) {};
 
-        bool get(tr1::array<unsigned int, 7> &key);
-        void set(tr1::array<unsigned int, 7> &key);
+        bool get(array<unsigned int, 7> &key);
+        void set(array<unsigned int, 7> &key);
         void clear(){ matrix.clear(); };
         bool empty(){ return matrix.empty(); };
         void set_dimensions(unsigned int new_num_dimensions){ num_dimensions=new_num_dimensions; clear(); };

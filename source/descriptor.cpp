@@ -295,28 +295,27 @@ int Descriptor::check_consistency(){
     */
 
     for(int i=1;i<sses.size();i++){
-        switch (sses[i].is_helix){
-            case true: //a helix
-                if( !expand_wildcards(sses[i].pattern) ) return sses[i].id;
-                if( !expand_wildcards(sses[i].complement) ) return sses[i].id;
-                if( sses[i].pattern.size() != sses[i].complement.size() ) return sses[i].id;
-                if( sses[i].pattern.size() == 0) return sses[i].id;
-                if( sses[i].num_mismatches > sses[i].pattern.size()) return sses[i].id;
-                if( sses[i].num_mispairings > sses[i].pattern.size()) return sses[i].id;
+        if (sses[i].is_helix){
+            //a helix
+            if( !expand_wildcards(sses[i].pattern) ) return sses[i].id;
+            if( !expand_wildcards(sses[i].complement) ) return sses[i].id;
+            if( sses[i].pattern.size() != sses[i].complement.size() ) return sses[i].id;
+            if( sses[i].pattern.size() == 0) return sses[i].id;
+            if( sses[i].num_mismatches > sses[i].pattern.size()) return sses[i].id;
+            if( sses[i].num_mispairings > sses[i].pattern.size()) return sses[i].id;
 
-                reverse(sses[i].complement.begin(), sses[i].complement.end()); //reverse the complement
-                for(int j=0;j<sses[i].pattern.size();j++){ //complementarity check
-                    //if there is a wild card in one of the strands, there must be one also in the other strand
-                    if((sses[i].pattern[j]=='*') != (sses[i].complement[j]=='*')) return sses[i].id;
-                    //check complementarity
-                    if(!is_complemntary(sses[i].pattern[j], sses[i].complement[j], sses[i].transf_matrix)) return sses[i].id;
-                }
-                break;
-            case false: //a single strand
-                if( !expand_wildcards(sses[i].pattern) ) return sses[i].id;
-                if( sses[i].pattern.size() == 0) return sses[i].id;
-                if( sses[i].num_mismatches > sses[i].pattern.size()) return sses[i].id;
-                break;
+            reverse(sses[i].complement.begin(), sses[i].complement.end()); //reverse the complement
+            for(int j=0;j<sses[i].pattern.size();j++){ //complementarity check
+                //if there is a wild card in one of the strands, there must be one also in the other strand
+                if((sses[i].pattern[j]=='*') != (sses[i].complement[j]=='*')) return sses[i].id;
+                //check complementarity
+                if(!is_complemntary(sses[i].pattern[j], sses[i].complement[j], sses[i].transf_matrix)) return sses[i].id;
+            }
+        } else {
+            //a single strand
+            if( !expand_wildcards(sses[i].pattern) ) return sses[i].id;
+            if( sses[i].pattern.size() == 0) return sses[i].id;
+            if( sses[i].num_mismatches > sses[i].pattern.size()) return sses[i].id;
         }
     }
 

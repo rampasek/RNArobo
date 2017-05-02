@@ -9,7 +9,7 @@
 
 #include <vector>
 #include <set>
-#include <tr1/array>
+#include <array>
 #include <cstring>
 
 #include "matrix.h"
@@ -17,7 +17,7 @@
 using namespace std;
 
 //get value of a cell specified by given key of type vector<int>
-bool Matrix::get(tr1::array<unsigned int, 7> &key){
+bool Matrix::get(array<unsigned int, 7> &key){
     //if(key.size()!=num_dimensions) return 0;
     
     unsigned long long int x = 0;
@@ -36,7 +36,7 @@ bool Matrix::get(tr1::array<unsigned int, 7> &key){
 }
 
 //set value of a cell specified by given key of type vector<int>
-void Matrix::set(tr1::array<unsigned int, 7> &key){
+void Matrix::set(array<unsigned int, 7> &key){
     //if(key.size()!=num_dimensions) return;
     
     unsigned long long int x = 0;
